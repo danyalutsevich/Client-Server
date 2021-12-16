@@ -78,8 +78,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		switch (cmd) {
 
 		case CMD_START_SERVER:
-
-			StartServer(&hWnd);
+			CreateThread(0, 0, StartServer,&hWnd,0,0);
 			break;
 
 		case CMD_STOP_SERVER:
@@ -160,7 +159,6 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 	const size_t MAX_LEN = 100;
 	WCHAR str[MAX_LEN];
-
 
 
 	WSADATA wsaData;
@@ -273,6 +271,13 @@ DWORD CALLBACK StartServer(LPVOID params) {
 	while (true) {
 		// wait for network activity
 		acceptSocket = accept(listenSocket, NULL, NULL);
+		if (acceptSocket == INVALID_SOCKET) {
+
+			_snwprintf_s(str, MAX_LEN, L"Accept socket error: %d", WSAGetLastError());
+			SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
+			closesocket(acceptSocket);
+			return -60;
+		}
 		//communication begins
 		data[0] = '\0';
 		do {
@@ -296,6 +301,15 @@ DWORD CALLBACK StartServer(LPVOID params) {
 			buff[receivedCnd] = '\0';
 			strcat_s(data, buff); //data+= chunk (buff)
 		} while (buff[receivedCnd-1]=='\0'); // '\0' - end of data
+		
+		//data is sum of chuncks
+		SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
+
+		//send answer to client - write in socket
+		send(acceptSocket,"200",4,0);
+
+		shutdown(acceptSocket,SD_BOTH);
+		closesocket(acceptSocket);
 
 	}
 
