@@ -3,7 +3,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #define CMD_SEND_MESSAGE 1000
-
+#include "resource.h"
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <Windows.h>
@@ -36,6 +36,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	wc.hInstance = hInst;
 	wc.lpszClassName = WIN_CLASS_NAME;
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1));
 
 	ATOM mainWin = RegisterClassW(&wc);
 	if (mainWin == FALSE) {
@@ -43,9 +44,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		return -1;
 	}
 
-	HWND hwnd = CreateWindowExW(0, WIN_CLASS_NAME,
-		L"TCP Chat - Client", WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, 640, 480, NULL, NULL, hInst, NULL);
+	HWND hwnd = CreateWindowExW(0, WIN_CLASS_NAME, L"TCP Chat - Client", WS_OVERLAPPEDWINDOW, 700, 50, 640, 480, NULL, NULL, hInst, NULL);
 	if (hwnd == NULL) {
 		MessageBoxW(NULL, L"Window create error", L"Window create error", MB_OK | MB_ICONSTOP);
 		return -2;
@@ -93,7 +92,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		PAINTSTRUCT ps;
 		HDC dc = BeginPaint(hWnd, &ps);
 
-		FillRect(dc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
+		FillRect(dc, &ps.rcPaint, CreateSolidBrush(RGB(0, 136, 204)));
 		EndPaint(hWnd, &ps);
 
 		break;
@@ -108,13 +107,34 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 			SetBkMode(dc, TRANSPARENT);
 			SetTextColor(dc, RGB(20, 20, 50));
-
+			SetBkColor(dc, RGB(0, 136, 204));
 		}
 
 		return (LRESULT)GetStockObject(NULL_BRUSH);
 		break;
 	}
+	case WM_CTLCOLORLISTBOX: {
 
+		HDC dc = (HDC)wParam;
+		HWND ctl = (HWND)lParam;
+
+		SetBkMode(dc, TRANSPARENT);
+		SetBkColor(dc, RGB(0, 136, 204));
+		
+		return (LRESULT)GetStockObject(NULL_BRUSH);
+		break;
+	}
+	case WM_CTLCOLOREDIT: {
+
+		HDC dc = (HDC)wParam;
+		HWND ctl = (HWND)lParam;
+
+		SetBkMode(dc, TRANSPARENT);
+		SetBkColor(dc, RGB(0, 136, 204));
+
+		return (LRESULT)GetStockObject(NULL_BRUSH);
+		break;
+	}
 	case WM_DESTROY: 
 		PostQuitMessage(0); 
 		break;
@@ -247,12 +267,15 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 		return -40;
 	}
 
+		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)chatMsg);
 	int receveCnt = recv(clientSocket,chatMsg,MSG_LEN,0);
 
 	if (receveCnt > 0) {
 
 		chatMsg[receveCnt] = '\0';
 		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)chatMsg);
+
+		
 
 	}
 

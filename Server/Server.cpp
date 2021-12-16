@@ -4,7 +4,7 @@
 
 #define CMD_START_SERVER 1000
 #define CMD_STOP_SERVER 1001
-
+#include "resource.h"
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <Windows.h>
@@ -32,12 +32,16 @@ DWORD CALLBACK StopServer(LPVOID);
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_     PWSTR cmdLine, _In_     int showMode) {
 	hInst = hInstance;
 
+
 	const WCHAR WIN_CLASS_NAME[] = L"ServerWindow";
-	WNDCLASS wc = { };
+
+	WNDCLASSW wc = { };
 	wc.lpfnWndProc = WinProc;
 	wc.hInstance = hInst;
 	wc.lpszClassName = WIN_CLASS_NAME;
+	//wc.hbrBackground = CreateSolidBrush(RGB(0,136,204));
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1)); //handle to a small icon
 
 	ATOM mainWin = RegisterClassW(&wc);
 	if (mainWin == FALSE) {
@@ -45,9 +49,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		return -1;
 	}
 
-	HWND hwnd = CreateWindowExW(0, WIN_CLASS_NAME,
-		L"TCP Chat - Server", WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, 640, 480, NULL, NULL, hInst, NULL);
+	HWND hwnd = CreateWindowExW(0, WIN_CLASS_NAME, L"TCP Chat - Server", WS_OVERLAPPEDWINDOW,50,50, 640, 480, NULL, NULL, hInst, NULL);
 	if (hwnd == NULL) {
 		MessageBoxW(NULL, L"Window create error", L"Window create error", MB_OK | MB_ICONSTOP);
 		return -2;
@@ -96,7 +98,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		PAINTSTRUCT ps;
 		HDC dc = BeginPaint(hWnd, &ps);
 
-		FillRect(dc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
+		FillRect(dc, &ps.rcPaint, CreateSolidBrush(RGB(0, 136, 204)));
 		EndPaint(hWnd, &ps);
 
 		break;
@@ -117,6 +119,29 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		return (LRESULT)GetStockObject(NULL_BRUSH);
 		break;
 	}
+	case WM_CTLCOLORLISTBOX: {
+
+		HDC dc = (HDC)wParam;
+		HWND ctl = (HWND)lParam;
+
+		SetBkMode(dc, TRANSPARENT);
+		SetBkColor(dc, RGB(0, 136, 204));
+
+		return (LRESULT)GetStockObject(NULL_BRUSH);
+		break;
+	}
+	case WM_CTLCOLOREDIT: {
+
+		HDC dc = (HDC)wParam;
+		HWND ctl = (HWND)lParam;
+
+		SetBkMode(dc, TRANSPARENT);
+		SetBkColor(dc, RGB(0, 136, 204));
+
+		return (LRESULT)GetStockObject(NULL_BRUSH);
+		break;
+	}
+
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
@@ -138,7 +163,7 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 	CreateWindowExW(0, L"Static", L"Port:", WS_CHILD | WS_VISIBLE, 20, 50, 40, 15, hWnd, NULL, hInst, NULL);
 	hPort = CreateWindowExW(0, L"Edit", L"8888", WS_CHILD | WS_VISIBLE, 60, 50, 120, 17, hWnd, NULL, hInst, NULL);
 
-	serverLog = CreateWindowExW(0, L"Listbox", L"", WS_CHILD | WS_VISIBLE | WS_BORDER, 200, 18, 250, 200, hWnd, NULL, hInst, NULL);
+	serverLog = CreateWindowExW(0, L"Listbox", L"", WS_CHILD | WS_VISIBLE | WS_BORDER , 200, 18, 250, 200, hWnd, NULL, hInst, NULL);
 
 	startServer = CreateWindowExW(0, L"Button", L"Start", WS_CHILD | WS_VISIBLE, 10, 100, 75, 23, hWnd, (HMENU)CMD_START_SERVER, hInst, NULL);
 	stopServer = CreateWindowExW(0, L"Button", L"Stop", WS_CHILD | WS_VISIBLE, 115, 100, 75, 23, hWnd, (HMENU)CMD_STOP_SERVER, hInst, NULL);
@@ -266,7 +291,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 	const size_t DATA_LEN = 2048;
 	char buff[BUFF_LEN+1];
 	char data[DATA_LEN]; // big buffer for all transfered chunks
-	int receivedCnd; //chunck size
+	int receivedCnt; //chunck size
 
 	while (true) {
 		// wait for network activity
@@ -281,16 +306,16 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		//communication begins
 		data[0] = '\0';
 		do {
-			receivedCnd = recv(acceptSocket, buff, BUFF_LEN, 0);
+			receivedCnt = recv(acceptSocket, buff, BUFF_LEN, 0);
 
-			if (receivedCnd == 0) { // 0 - connection closed by client
+			if (receivedCnt == 0) { // 0 - connection closed by client
 
 				closesocket(acceptSocket);
 				SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)"Connection closed");
 				break;
 			}
 
-			if (receivedCnd < 0) { //receiving error
+			if (receivedCnt < 0) { //receiving error
 
 				closesocket(acceptSocket);
 				_snwprintf_s(str, MAX_LEN, L"Communication socket error: %d", WSAGetLastError());
@@ -298,12 +323,12 @@ DWORD CALLBACK StartServer(LPVOID params) {
 				break;
 
 			}
-			buff[receivedCnd] = '\0';
+			buff[receivedCnt] = '\0';
 			strcat_s(data, buff); //data+= chunk (buff)
-		} while (buff[receivedCnd-1]=='\0'); // '\0' - end of data
+		} while (strlen(buff)==BUFF_LEN); // '\0' - end of data
 		
 		//data is sum of chuncks
-		SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
+		SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
 
 		//send answer to client - write in socket
 		send(acceptSocket,"200",4,0);
