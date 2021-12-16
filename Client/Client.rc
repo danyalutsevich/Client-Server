@@ -45,12 +45,6 @@ END
 #endif    // APSTUDIO_INVOKED
 
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// PNG
-//
-
-IDB_PNG1                PNG                     "C:\\Users\\luche\\Desktop\\chatIcon1.png"
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -60,7 +54,7 @@ IDB_PNG1                PNG                     "C:\\Users\\luche\\Desktop\\chat
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON1               ICON                    "C:\\Users\\luche\\Desktop\\chatIcon.ico"
+IDI_ICON1               ICON                    ".\\chatIcon.ico"
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

@@ -33,8 +33,5 @@
     <Image Include="..\..\..\..\Desktop\chatIcon.ico">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="..\..\..\..\Desktop\chatIcon1.png">
-      <Filter>Resource Files</Filter>
-    </Image>
   </ItemGroup>
 </Project>
