@@ -164,9 +164,9 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 
 	WSADATA wsaData;
-
 	int err;
 
+	//WinSock API initializing ( ~wsaData = new WSA(2.2) )
 	err = WSAStartup(MAKEWORD(2, 2), &wsaData);
 
 	if (err) {
@@ -177,7 +177,8 @@ DWORD CALLBACK StartServer(LPVOID params) {
 	}
 
 	listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
+	
+	//Socket preparing
 	if (listenSocket == INVALID_SOCKET) {
 
 		_snwprintf_s(str, MAX_LEN, L"Socket error: %d", WSAGetLastError());
@@ -186,46 +187,51 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		return -20;
 
 	}
+	//----Socket configuration------
+	SOCKADDR_IN addr; //Config structure
 
-	SOCKADDR_IN addr;
-	addr.sin_family = AF_INET;
+	addr.sin_family = AF_INET; // 1.Network type (family)
 
 	char ip[20];
 	LRESULT ipLen = SendMessageA(hIP, WM_GETTEXT, 29, (LPARAM)ip);
 	ip[ipLen] = '\0';
 
-	inet_pton(AF_INET, ip, &addr.sin_addr);
+	inet_pton(AF_INET, ip, &addr.sin_addr); //2.IP
 
 
 	char port[8];
 	LRESULT portLen = SendMessageA(hPort, WM_GETTEXT, 7, (LPARAM)port);
 	port[portLen] = '\0';
 
-	addr.sin_port = htons(atoi(port));
+	addr.sin_port = htons(atoi(port)); //3.Port
+	//----end configuration------
 
+	//Socket binding - config [addr] applying to socket
 	err = bind(listenSocket, (SOCKADDR*)&addr, sizeof(addr));
-
+	
 	if (err == SOCKET_ERROR) {
 
-		if (WSAGetLastError() == 10048) {
+		int lastError = WSAGetLastError();
 
-			_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", WSAGetLastError(), L"Address already in use");
+		if (lastError == 10048) {
+
+			_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Address already in use");
 		}
-		else if (WSAGetLastError() == 10049) {
+		else if (lastError == 10049) {
 
-			_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", WSAGetLastError(), L"Cannot assign requested address");
+			_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Cannot assign requested address");
 		}
-		else if (WSAGetLastError() == 10050) {
+		else if (lastError == 10050) {
 
-			_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", WSAGetLastError(), L"Network is down");
+			_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Network is down");
 		}
-		else if (WSAGetLastError() == 10051) {
+		else if (lastError == 10051) {
 
-			_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", WSAGetLastError(), L"Network is unreachable");
+			_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Network is unreachable");
 		}
 		else {
 
-			_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d", WSAGetLastError());
+			_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d", lastError);
 		}
 
 		closesocket(listenSocket);
@@ -234,8 +240,10 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		return -30;
 
 	}
-
+	
+	//Start of listening - from this point Socket recives data form OS
 	err = listen(listenSocket, SOMAXCONN);
+
 
 	if (err == SOCKET_ERROR) {
 
@@ -246,14 +254,53 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		return -40;
 
 	}
+	//Log start message
 	char strartMsg[MAX_LEN];
-
 	_snprintf_s(strartMsg, MAX_LEN, MAX_LEN, "Server starts IP: %s Port: %s", ip, port);
-
 	SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)strartMsg);
-
 	EnableWindow(stopServer, TRUE);
 	EnableWindow(startServer, FALSE);
+
+	//listening loop
+	SOCKET acceptSocket; //second socket - for communication
+
+	const size_t BUFF_LEN = 8;
+	const size_t DATA_LEN = 2048;
+	char buff[BUFF_LEN+1];
+	char data[DATA_LEN]; // big buffer for all transfered chunks
+	int receivedCnd; //chunck size
+
+	while (true) {
+		// wait for network activity
+		acceptSocket = accept(listenSocket, NULL, NULL);
+		//communication begins
+		data[0] = '\0';
+		do {
+			receivedCnd = recv(acceptSocket, buff, BUFF_LEN, 0);
+
+			if (receivedCnd == 0) { // 0 - connection closed by client
+
+				closesocket(acceptSocket);
+				SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)"Connection closed");
+				break;
+			}
+
+			if (receivedCnd < 0) { //receiving error
+
+				closesocket(acceptSocket);
+				_snwprintf_s(str, MAX_LEN, L"Communication socket error: %d", WSAGetLastError());
+				SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
+				break;
+
+			}
+			buff[receivedCnd] = '\0';
+			strcat_s(data, buff); //data+= chunk (buff)
+		} while (buff[receivedCnd-1]=='\0'); // '\0' - end of data
+
+	}
+
+
+
 
 	return 0;
 }
