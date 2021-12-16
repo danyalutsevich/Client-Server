@@ -25,7 +25,7 @@ SOCKET clientSocket;
 
 LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 DWORD CALLBACK CreateUI(LPVOID);
-DWORD CALLBACK SendMessageC(LPVOID);
+DWORD CALLBACK SendChatMessage(LPVOID);
 
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_     PWSTR cmdLine, _In_     int showMode) {
 	hInst = hInstance;
@@ -67,7 +67,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		
 		CreateUI(&hWnd);
 		break;
-	case CMD_SEND_MESSAGE: {
+	case WM_COMMAND: {
 
 
 		int cmd = LOWORD(wParam);
@@ -76,7 +76,10 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		switch (cmd) {
 
 		case CMD_SEND_MESSAGE:
-			CreateThread(0, 0, SendMessageC, &hWnd, 0, 0);
+
+			//MessageBoxA(NULL,"asasd","sdfsadf",MB_OK);
+
+			SendChatMessage(&hWnd);
 			break;
 
 		
@@ -141,7 +144,7 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 	return 0;
 }
 
-DWORD CALLBACK SendMessageC(LPVOID params) {
+DWORD CALLBACK SendChatMessage(LPVOID params) {
 
 	HWND hWnd = *((HWND*)params);
 
@@ -249,7 +252,7 @@ DWORD CALLBACK SendMessageC(LPVOID params) {
 	if (receveCnt > 0) {
 
 		chatMsg[receveCnt] = '\0';
-		SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)chatMsg);
+		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)chatMsg);
 
 	}
 
@@ -257,4 +260,6 @@ DWORD CALLBACK SendMessageC(LPVOID params) {
 	closesocket(clientSocket);
 	WSACleanup();
 
+	SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)L"-End-");
+	return 0;
 }
