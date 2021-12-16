@@ -17,6 +17,7 @@ HWND chatLog;
 HWND sendMessage;
 HWND hPort;
 HWND hIP;
+HWND hName;
 HWND grpEndPoint;
 HWND editMessage;
 
@@ -118,7 +119,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		HDC dc = (HDC)wParam;
 		HWND ctl = (HWND)lParam;
 
-		SetBkMode(dc, TRANSPARENT);
+		
 		SetBkColor(dc, RGB(0, 136, 204));
 		
 		return (LRESULT)GetStockObject(NULL_BRUSH);
@@ -129,7 +130,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		HDC dc = (HDC)wParam;
 		HWND ctl = (HWND)lParam;
 
-		SetBkMode(dc, TRANSPARENT);
 		SetBkColor(dc, RGB(0, 136, 204));
 
 		return (LRESULT)GetStockObject(NULL_BRUSH);
@@ -154,12 +154,13 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 	CreateWindowExW(0, L"Static", L"Port:", WS_CHILD | WS_VISIBLE, 20, 50, 40, 15, hWnd, NULL, hInst, NULL);
 	hPort = CreateWindowExW(0, L"Edit", L"8888", WS_CHILD | WS_VISIBLE, 60, 50, 120, 17, hWnd, NULL, hInst, NULL);
 
-	chatLog = CreateWindowExW(0, L"Listbox", L"", WS_CHILD | WS_VISIBLE | WS_BORDER, 200, 18, 250, 200, hWnd, NULL, hInst, NULL);
+	chatLog = CreateWindowExW(0, L"Listbox", L"", WS_CHILD | WS_VISIBLE | WS_BORDER, 200, 18, 400, 200, hWnd, NULL, hInst, NULL);
 
 	sendMessage = CreateWindowExW(0, L"Button", L"Send", WS_CHILD | WS_VISIBLE, 10, 190, 75, 23, hWnd, (HMENU)CMD_SEND_MESSAGE, hInst, NULL);
 	
 	editMessage = CreateWindowExW(0, L"Edit", L"", WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 100, 180, 50, hWnd, NULL, hInst, NULL);
 
+	hName = CreateWindowExW(0, L"Edit", L"Danya", WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 160, 180, 23, hWnd, NULL, hInst, NULL);
 
 	return 0;
 }
@@ -250,12 +251,19 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 
 	}
 
-	const size_t MSG_LEN = 512;
+	const size_t EDITMSG_LEN = 512;
 
-	char chatMsg[MSG_LEN];
-	SendMessageA(editMessage,WM_GETTEXT,MSG_LEN,(LPARAM)chatMsg);
+	char editMsg[EDITMSG_LEN];
+	SendMessageA(editMessage,WM_GETTEXT, EDITMSG_LEN,(LPARAM)editMsg);
 
-	int sent = send(clientSocket, chatMsg, MSG_LEN+1, 0);
+	char name[30];
+	SendMessageA(hName, WM_GETTEXT, 30, (LPARAM)name);
+
+	const size_t MSG_LEN = 542;
+	char message[542];
+	_snprintf_s(message, MSG_LEN, MSG_LEN, "%s: %s", name, editMsg);
+
+	int sent = send(clientSocket, message, MSG_LEN+1, 0);
 
 	if (sent==SOCKET_ERROR) {
 
@@ -267,13 +275,20 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 		return -40;
 	}
 
-		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)chatMsg);
-	int receveCnt = recv(clientSocket,chatMsg,MSG_LEN,0);
+	SYSTEMTIME  time;
+	GetLocalTime(&time);
+
+	_snprintf_s(message, MSG_LEN, MSG_LEN, "%s %d:%d", message, time.wHour, time.wMinute);
+
+
+		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
+	int receveCnt = recv(clientSocket, message,MSG_LEN,0);
 
 	if (receveCnt > 0) {
 
-		chatMsg[receveCnt] = '\0';
-		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)chatMsg);
+		message[receveCnt] = '\0';
+		
+		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
 
 		
 

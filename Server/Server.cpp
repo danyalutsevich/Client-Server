@@ -10,6 +10,7 @@
 #include <Windows.h>
 #include <wchar.h>
 #include <stdio.h>
+#include <time.h>
 
 HINSTANCE hInst;
 
@@ -163,7 +164,7 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 	CreateWindowExW(0, L"Static", L"Port:", WS_CHILD | WS_VISIBLE, 20, 50, 40, 15, hWnd, NULL, hInst, NULL);
 	hPort = CreateWindowExW(0, L"Edit", L"8888", WS_CHILD | WS_VISIBLE, 60, 50, 120, 17, hWnd, NULL, hInst, NULL);
 
-	serverLog = CreateWindowExW(0, L"Listbox", L"", WS_CHILD | WS_VISIBLE | WS_BORDER , 200, 18, 250, 200, hWnd, NULL, hInst, NULL);
+	serverLog = CreateWindowExW(0, L"Listbox", L"", WS_CHILD | WS_VISIBLE | WS_BORDER , 200, 18, 400, 200, hWnd, NULL, hInst, NULL);
 
 	startServer = CreateWindowExW(0, L"Button", L"Start", WS_CHILD | WS_VISIBLE, 10, 100, 75, 23, hWnd, (HMENU)CMD_START_SERVER, hInst, NULL);
 	stopServer = CreateWindowExW(0, L"Button", L"Stop", WS_CHILD | WS_VISIBLE, 115, 100, 75, 23, hWnd, (HMENU)CMD_STOP_SERVER, hInst, NULL);
@@ -328,6 +329,14 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		} while (strlen(buff)==BUFF_LEN); // '\0' - end of data
 		
 		//data is sum of chuncks
+
+
+		SYSTEMTIME  time;
+		GetLocalTime(&time);
+		
+
+		_snprintf_s(data, MAX_LEN, MAX_LEN, "%s %d:%d", data, time.wHour, time.wMinute);
+
 		SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
 
 		//send answer to client - write in socket
