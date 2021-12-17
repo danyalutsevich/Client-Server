@@ -51,7 +51,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		return -1;
 	}
 
-	HWND hwnd = CreateWindowExW(0, WIN_CLASS_NAME, L"TCP Chat - Server", WS_OVERLAPPEDWINDOW,50,50, 640, 480, NULL, NULL, hInst, NULL);
+	HWND hwnd = CreateWindowExW(0, WIN_CLASS_NAME, L"TCP Chat - Server", WS_OVERLAPPEDWINDOW, 50, 50, 640, 480, NULL, NULL, hInst, NULL);
 	if (hwnd == NULL) {
 		MessageBoxW(NULL, L"Window create error", L"Window create error", MB_OK | MB_ICONSTOP);
 		return -2;
@@ -82,7 +82,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		switch (cmd) {
 
 		case CMD_START_SERVER:
-			CreateThread(0, 0, StartServer,&hWnd,0,0);
+			CreateThread(0, 0, StartServer, &hWnd, 0, 0);
 			break;
 
 		case CMD_STOP_SERVER:
@@ -126,7 +126,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		HDC dc = (HDC)wParam;
 		HWND ctl = (HWND)lParam;
 
-	
+
 		SetBkColor(dc, RGB(0, 136, 204));
 
 		return (LRESULT)GetStockObject(NULL_BRUSH);
@@ -137,7 +137,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		HDC dc = (HDC)wParam;
 		HWND ctl = (HWND)lParam;
 
-	
+
 		SetBkColor(dc, RGB(0, 136, 204));
 
 		return (LRESULT)GetStockObject(NULL_BRUSH);
@@ -165,7 +165,7 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 	CreateWindowExW(0, L"Static", L"Port:", WS_CHILD | WS_VISIBLE, 20, 50, 40, 15, hWnd, NULL, hInst, NULL);
 	hPort = CreateWindowExW(0, L"Edit", L"8888", WS_CHILD | WS_VISIBLE, 60, 50, 120, 17, hWnd, NULL, hInst, NULL);
 
-	serverLog = CreateWindowExW(0, L"Listbox", L"", WS_CHILD | WS_VISIBLE | WS_BORDER , 200, 18, 400, 200, hWnd, NULL, hInst, NULL);
+	serverLog = CreateWindowExW(0, L"Listbox", L"", WS_CHILD | WS_VISIBLE | WS_BORDER, 200, 18, 400, 200, hWnd, NULL, hInst, NULL);
 
 	startServer = CreateWindowExW(0, L"Button", L"Start", WS_CHILD | WS_VISIBLE, 10, 100, 75, 23, hWnd, (HMENU)CMD_START_SERVER, hInst, NULL);
 	stopServer = CreateWindowExW(0, L"Button", L"Stop", WS_CHILD | WS_VISIBLE, 115, 100, 75, 23, hWnd, (HMENU)CMD_STOP_SERVER, hInst, NULL);
@@ -208,6 +208,7 @@ std::string* splitString(std::string str, char sym) {
 
 	if (parts == 1) {
 
+		
 	}
 
 
@@ -216,20 +217,119 @@ std::string* splitString(std::string str, char sym) {
 }
 
 
+class ChatMessage {
 
-//struct USER {
-//
-//public:
-//	char name[30];
-//	char message[512];
-//	char time[6];
-//
-//
-//
-//};
+	char* name;
+	char* message;
+
+public:
+
+	ChatMessage() :name{ NULL }, message{ NULL }{}
+
+	ChatMessage(char* name, char* message) :ChatMessage() {
+
+		setName(name);
+		setMessage(message);
+
+	}
+
+	char* getName() {
+
+		return name;
+	}
+
+	char* getMessage() {
+
+		return message;
+	}
+
+	void setName(const char* name) {
+
+		if (!name) {
+
+			return;
+		}
+		if (this->name) {
+
+			delete this->name;
+		}
+		this->name = new char[strlen(name)];
+		strcpy(this->name, name);
+	}
+
+	void setMessage(const char* message) {
+
+		if (!message) {
+
+			return;
+		}
+		if (this->message) {
+
+			delete this->message;
+		}
+		this->message = new char[strlen(message)];
+		strcpy(this->message, message);
+	}
+
+	bool parseString(char* str) {
+
+		/*if (str == NULL) {
+			return false;
+		}
+
+		int tabPos = -1;
+		int len = strlen(str);
+		int i = 0;
+
+		while (str[i] != '\t' && i < len) {
+
+			++i;
+		}
+
+		if (i == len) {
+
+			return false;
+		}
+
+		tabPos = i;
+
+		if (this->name != NULL) {
+		
+			delete[] this->name;
+
+		}
+
+		this->name = new char[tabPos + 1];
 
 
+		for (int i = 0; i < tabPos-1; i++) {
 
+			name[i] = str[i];
+
+			name[i+1] = '\0';
+
+		}
+
+		///
+		if(this->message!=NULL){
+		
+			delete[] this->message;
+		}
+		this->message = new char[len - tabPos];
+
+		setName(str+tabPos+1);*/
+
+		
+
+		std::string* userData = splitString(str, '\t');
+
+		setName(userData[0].c_str());
+		setMessage(userData[1].c_str());
+	
+		return true;
+	}
+
+};
 
 
 
@@ -254,7 +354,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 	}
 
 	listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	
+
 	//Socket preparing
 	if (listenSocket == INVALID_SOCKET) {
 
@@ -285,7 +385,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 	//Socket binding - config [addr] applying to socket
 	err = bind(listenSocket, (SOCKADDR*)&addr, sizeof(addr));
-	
+
 	if (err == SOCKET_ERROR) {
 
 		int lastError = WSAGetLastError();
@@ -317,7 +417,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		return -30;
 
 	}
-	
+
 	//Start of listening - from this point Socket recives data form OS
 	err = listen(listenSocket, SOMAXCONN);
 
@@ -343,7 +443,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 	const size_t BUFF_LEN = 8;
 	const size_t DATA_LEN = 2048;
-	char buff[BUFF_LEN+1];
+	char buff[BUFF_LEN + 1];
 	char data[DATA_LEN]; // big buffer for all transfered chunks
 	int receivedCnt; //chunck size
 
@@ -381,19 +481,17 @@ DWORD CALLBACK StartServer(LPVOID params) {
 			buff[receivedCnt] = '\0';
 			strcat_s(data, buff); //data+= chunk (buff)
 
-		} while (strlen(buff)==BUFF_LEN); // '\0' - end of data
-		
+		} while (strlen(buff) == BUFF_LEN); // '\0' - end of data
+
 		//data is sum of chuncks
 
-		std::string* userData = splitString(data, '\t');
 		
-		//USER user;
-		//user.name = userData[0].c_str();
 
-		char name[30];
-		char message[512];
-		strcpy_s(name, userData[0].c_str());
-		strcpy_s(message, userData[1].c_str());
+		
+		ChatMessage MSG;
+
+		MSG.parseString(data);
+
 
 
 		SYSTEMTIME  time;
@@ -412,9 +510,9 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 		//send answer to client - write in socket
 
-		send(acceptSocket,"200",4,0);
+		send(acceptSocket, "200", 4, 0);
 
-		shutdown(acceptSocket,SD_BOTH);
+		shutdown(acceptSocket, SD_BOTH);
 		closesocket(acceptSocket);
 
 	}
