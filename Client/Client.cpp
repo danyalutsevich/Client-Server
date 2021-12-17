@@ -261,9 +261,12 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 
 	const size_t MSG_LEN = 542;
 	char message[542];
-	_snprintf_s(message, MSG_LEN, MSG_LEN, "%s: %s", name, editMsg);
+
+	_snprintf_s(message, MSG_LEN, MSG_LEN, "%s:\t%s\0", name, editMsg);
 
 	int sent = send(clientSocket, message, MSG_LEN+1, 0);
+
+	
 
 	if (sent==SOCKET_ERROR) {
 
@@ -278,7 +281,7 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 	SYSTEMTIME  time;
 	GetLocalTime(&time);
 
-	_snprintf_s(message, MSG_LEN, MSG_LEN, "%s %d:%d", message, time.wHour, time.wMinute);
+	_snprintf_s(message, MSG_LEN, MSG_LEN, "%s\t %d:%d", message, time.wHour, time.wMinute);
 
 
 		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);

@@ -11,6 +11,7 @@
 #include <wchar.h>
 #include <stdio.h>
 #include <time.h>
+#include <string>
 
 HINSTANCE hInst;
 
@@ -125,7 +126,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		HDC dc = (HDC)wParam;
 		HWND ctl = (HWND)lParam;
 
-		SetBkMode(dc, TRANSPARENT);
+	
 		SetBkColor(dc, RGB(0, 136, 204));
 
 		return (LRESULT)GetStockObject(NULL_BRUSH);
@@ -136,7 +137,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		HDC dc = (HDC)wParam;
 		HWND ctl = (HWND)lParam;
 
-		SetBkMode(dc, TRANSPARENT);
+	
 		SetBkColor(dc, RGB(0, 136, 204));
 
 		return (LRESULT)GetStockObject(NULL_BRUSH);
@@ -177,6 +178,58 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 
 	return 0;
 }
+
+
+
+std::string* splitString(std::string str, char sym) {
+
+	size_t pos = 0;
+	int parts = 1;
+
+	while ((pos = str.find(sym, pos + 1)) != std::string::npos) {
+		parts++;
+	}
+
+	std::string* res = new std::string[parts];
+	pos = 0;
+	size_t pos2;
+
+	for (int i = 0; i < parts - 1; i++) {
+
+		pos2 = str.find(sym, pos + 1);
+		res[i] = str.substr(pos, pos2 - pos);
+		pos = pos2;
+
+
+	}
+
+	res[parts - 1] = str.substr(pos + 1);
+
+
+	if (parts == 1) {
+
+	}
+
+
+
+	return res;
+}
+
+
+
+//struct USER {
+//
+//public:
+//	char name[30];
+//	char message[512];
+//	char time[6];
+//
+//
+//
+//};
+
+
+
 
 
 
@@ -324,22 +377,41 @@ DWORD CALLBACK StartServer(LPVOID params) {
 				break;
 
 			}
+
 			buff[receivedCnt] = '\0';
 			strcat_s(data, buff); //data+= chunk (buff)
+
 		} while (strlen(buff)==BUFF_LEN); // '\0' - end of data
 		
 		//data is sum of chuncks
 
+		std::string* userData = splitString(data, '\t');
+		
+		//USER user;
+		//user.name = userData[0].c_str();
+
+		char name[30];
+		char message[512];
+		strcpy_s(name, userData[0].c_str());
+		strcpy_s(message, userData[1].c_str());
+
 
 		SYSTEMTIME  time;
 		GetLocalTime(&time);
-		
 
-		_snprintf_s(data, MAX_LEN, MAX_LEN, "%s %d:%d", data, time.wHour, time.wMinute);
 
-		SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
+		const size_t MAX_LOGDATA = 543;
+
+
+		char logData[MAX_LOGDATA];
+
+		_snprintf_s(logData, MAX_LOGDATA, MAX_LOGDATA, "%s %d:%d", data, time.wHour, time.wMinute);
+
+
+		SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)logData);
 
 		//send answer to client - write in socket
+
 		send(acceptSocket,"200",4,0);
 
 		shutdown(acceptSocket,SD_BOTH);
