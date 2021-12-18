@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <string>
+#include <iomanip>
+#include <list>
 
 HINSTANCE hInst;
 
@@ -25,6 +27,7 @@ HWND startServer;
 HWND stopServer;
 
 SOCKET listenSocket;
+
 
 LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 DWORD CALLBACK CreateUI(LPVOID);
@@ -183,6 +186,11 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 
 std::string* splitString(std::string str, char sym) {
 
+	if (str.size() == 0) {
+
+		return NULL;
+	}
+
 	size_t pos = 0;
 	int parts = 1;
 
@@ -200,18 +208,14 @@ std::string* splitString(std::string str, char sym) {
 		res[i] = str.substr(pos, pos2 - pos);
 		pos = pos2;
 
-
 	}
 
 	res[parts - 1] = str.substr(pos + 1);
-
 
 	if (parts == 1) {
 
 		
 	}
-
-
 
 	return res;
 }
@@ -219,13 +223,19 @@ std::string* splitString(std::string str, char sym) {
 
 class ChatMessage {
 
+private:
+
 	char* name;
 	char* message;
+	SYSTEMTIME  time;
+	
 
 public:
 
-	ChatMessage() :name{ NULL }, message{ NULL }{}
-
+	ChatMessage() :name{ NULL }, message{ NULL }{
+	
+		GetLocalTime(&time);
+	}
 	ChatMessage(char* name, char* message) :ChatMessage() {
 
 		setName(name);
@@ -237,10 +247,13 @@ public:
 
 		return name;
 	}
-
 	char* getMessage() {
 
 		return message;
+	}
+	SYSTEMTIME getSysTime() {
+
+		return time;
 	}
 
 	void setName(const char* name) {
@@ -256,7 +269,6 @@ public:
 		this->name = new char[strlen(name)];
 		strcpy(this->name, name);
 	}
-
 	void setMessage(const char* message) {
 
 		if (!message) {
@@ -270,68 +282,21 @@ public:
 		this->message = new char[strlen(message)];
 		strcpy(this->message, message);
 	}
+	
 
 	bool parseString(char* str) {
-
-		/*if (str == NULL) {
-			return false;
-		}
-
-		int tabPos = -1;
-		int len = strlen(str);
-		int i = 0;
-
-		while (str[i] != '\t' && i < len) {
-
-			++i;
-		}
-
-		if (i == len) {
-
-			return false;
-		}
-
-		tabPos = i;
-
-		if (this->name != NULL) {
-		
-			delete[] this->name;
-
-		}
-
-		this->name = new char[tabPos + 1];
-
-
-		for (int i = 0; i < tabPos-1; i++) {
-
-			name[i] = str[i];
-
-			name[i+1] = '\0';
-
-		}
-
-		///
-		if(this->message!=NULL){
-		
-			delete[] this->message;
-		}
-		this->message = new char[len - tabPos];
-
-		setName(str+tabPos+1);*/
-
-		
 
 		std::string* userData = splitString(str, '\t');
 
 		setName(userData[0].c_str());
 		setMessage(userData[1].c_str());
-	
-		return true;
+		
+		return userData;
 	}
 
 };
 
-
+std::list <ChatMessage>Messages;
 
 DWORD CALLBACK StartServer(LPVOID params) {
 	HWND hWnd = *((HWND*)params);
@@ -484,33 +449,32 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		} while (strlen(buff) == BUFF_LEN); // '\0' - end of data
 
 		//data is sum of chuncks
-
-		
-
 		
 		ChatMessage MSG;
-
 		MSG.parseString(data);
-
-
-
-		SYSTEMTIME  time;
-		GetLocalTime(&time);
-
+		Messages.push_back(MSG);
 
 		const size_t MAX_LOGDATA = 543;
-
-
 		char logData[MAX_LOGDATA];
+	
+		SYSTEMTIME time;
+		time = MSG.getSysTime();
 
-		_snprintf_s(logData, MAX_LOGDATA, MAX_LOGDATA, "%s %d:%d", data, time.wHour, time.wMinute);
-
-
+		//send message to log
+		_snprintf_s(logData, MAX_LOGDATA, MAX_LOGDATA, "%s %s %.2d:%.2d\0", MSG.getName(), MSG.getMessage(), time.wHour, time.wMinute);
 		SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)logData);
+
+
+
+
+
+
+
 
 		//send answer to client - write in socket
 
-		send(acceptSocket, "200", 4, 0);
+
+		send(acceptSocket, "200", 5, 0);
 
 		shutdown(acceptSocket, SD_BOTH);
 		closesocket(acceptSocket);
