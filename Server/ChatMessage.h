@@ -61,7 +61,6 @@ private:
 
 	char* name;
 	char* message;
-	//SYSTEMTIME  sysTime;
 	time_t dt;
 	char* _str;
 
@@ -70,7 +69,6 @@ public:
 
 	ChatMessage() :name{ NULL }, message{ NULL }, dt{ time(NULL) }, _str{ NULL }{
 
-		//GetLocalTime(&sysTime);
 	}
 	ChatMessage(char* name, char* message) :ChatMessage() {
 
@@ -87,10 +85,7 @@ public:
 
 		return message;
 	}
-	//SYSTEMTIME getSysTime() {
 
-	//	return sysTime;
-	//}
 
 	char* toStringDT() {
 		int text_len = strlen(message);
@@ -217,12 +212,12 @@ public:
 
 		_str = new char[text_len + 1 + name_len + 1 + 32];
 
-		/*if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday == now->tm_mday) {
+		if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday == now->tm_mday) {
 
 			sprintf(_str, "Today at %.2d:%.2d %s:%s", t->tm_hour, t->tm_min, getName(), getMessage());
 
-		}*/
-		/*else*/ if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday+1 == now->tm_mday) {
+		}
+		else if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday+1 == now->tm_mday) {
 
 			sprintf(_str, "Yesterday at %.2d:%.2d %s:%s", t->tm_hour, t->tm_min, getName(), getMessage());
 

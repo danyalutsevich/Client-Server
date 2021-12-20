@@ -45,7 +45,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	wc.lpfnWndProc = WinProc;
 	wc.hInstance = hInst;
 	wc.lpszClassName = WIN_CLASS_NAME;
-	//wc.hbrBackground = CreateSolidBrush(RGB(0,136,204));
+	wc.hbrBackground = CreateSolidBrush(RGB(0,136,204));
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1)); //handle to a small icon
 

@@ -86,10 +86,8 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 		case CMD_SEND_MESSAGE:
 
-			//MessageBoxA(NULL,"asasd","sdfsadf",MB_OK);
 
 			CreateThread(0, 0, SendChatMessage, &hWnd, 0, 0);
-			//SendChatMessage(&hWnd);
 			break;
 		case CMD_DDOS:
 
@@ -313,19 +311,13 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 		return -40;
 	}
 
-	//SYSTEMTIME  time;
-	//GetLocalTime(&time);
-
-	//_snprintf_s(message, MSG_LEN, MSG_LEN, "%s\t %d:%d", message, time.wHour, time.wMinute);
-
-		//SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
 
 	int receveCnt = recv(clientSocket, message, MSG_LEN, 0);
 
 
 	if (receveCnt > 0) {
 
-		//message[receveCnt] = '\0';
+		
 
 		ChatMessage MSG;
 		if (MSG.parseStringDT(message)) {
