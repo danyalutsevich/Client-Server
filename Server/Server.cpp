@@ -14,6 +14,7 @@
 #include <string>
 #include <iomanip>
 #include <list>
+#include "ChatMessage.h"
 
 HINSTANCE hInst;
 
@@ -184,117 +185,6 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 
 
 
-std::string* splitString(std::string str, char sym) {
-
-	if (str.size() == 0) {
-
-		return NULL;
-	}
-
-	size_t pos = 0;
-	int parts = 1;
-
-	while ((pos = str.find(sym, pos + 1)) != std::string::npos) {
-		parts++;
-	}
-
-	std::string* res = new std::string[parts];
-	pos = 0;
-	size_t pos2;
-
-	for (int i = 0; i < parts - 1; i++) {
-
-		pos2 = str.find(sym, pos + 1);
-		res[i] = str.substr(pos, pos2 - pos);
-		pos = pos2;
-
-	}
-
-	res[parts - 1] = str.substr(pos + 1);
-
-	if (parts == 1) {
-
-		
-	}
-
-	return res;
-}
-
-
-class ChatMessage {
-
-private:
-
-	char* name;
-	char* message;
-	SYSTEMTIME  time;
-	
-
-public:
-
-	ChatMessage() :name{ NULL }, message{ NULL }{
-	
-		GetLocalTime(&time);
-	}
-	ChatMessage(char* name, char* message) :ChatMessage() {
-
-		setName(name);
-		setMessage(message);
-
-	}
-
-	char* getName() {
-
-		return name;
-	}
-	char* getMessage() {
-
-		return message;
-	}
-	SYSTEMTIME getSysTime() {
-
-		return time;
-	}
-
-	void setName(const char* name) {
-
-		if (!name) {
-
-			return;
-		}
-		if (this->name) {
-
-			delete this->name;
-		}
-		this->name = new char[strlen(name)];
-		strcpy(this->name, name);
-	}
-	void setMessage(const char* message) {
-
-		if (!message) {
-
-			return;
-		}
-		if (this->message) {
-
-			delete this->message;
-		}
-		this->message = new char[strlen(message)];
-		strcpy(this->message, message);
-	}
-	
-
-	bool parseString(char* str) {
-
-		std::string* userData = splitString(str, '\t');
-
-		setName(userData[0].c_str());
-		setMessage(userData[1].c_str());
-		
-		return userData;
-	}
-
-};
 
 std::list <ChatMessage>Messages;
 
@@ -425,6 +315,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		//communication begins
 		data[0] = '\0';
 		do {
+
 			receivedCnt = recv(acceptSocket, buff, BUFF_LEN, 0);
 
 			if (receivedCnt == 0) { // 0 - connection closed by client
@@ -457,24 +348,22 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		const size_t MAX_LOGDATA = 543;
 		char logData[MAX_LOGDATA];
 	
-		SYSTEMTIME time;
-		time = MSG.getSysTime();
+		//SYSTEMTIME time;
+		//time = MSG.getSysTime();
 
 		//send message to log
-		_snprintf_s(logData, MAX_LOGDATA, MAX_LOGDATA, "%s %s %.2d:%.2d\0", MSG.getName(), MSG.getMessage(), time.wHour, time.wMinute);
-		SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)logData);
+		//_snprintf_s(logData, MAX_LOGDATA, MAX_LOGDATA, "%s", MSG.toString());
+		//SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)logData);
 
+		char* mst = MSG.toString();
 
-
-
-
-
+		SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)mst);
 
 
 		//send answer to client - write in socket
 
 
-		send(acceptSocket, "200", 5, 0);
+		send(acceptSocket, mst, strlen(mst)+1, 0);
 
 		shutdown(acceptSocket, SD_BOTH);
 		closesocket(acceptSocket);

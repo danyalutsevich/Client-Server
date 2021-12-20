@@ -9,6 +9,8 @@
 #include <Windows.h>
 #include <wchar.h>
 #include <stdio.h>
+#include <list>
+#include "../Server/ChatMessage.h"
 
 HINSTANCE hInst;
 
@@ -20,6 +22,8 @@ HWND hIP;
 HWND hName;
 HWND grpEndPoint;
 HWND editMessage;
+
+std::list<ChatMessage> Messages;
 
 SOCKET clientSocket;
 
@@ -262,7 +266,7 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 	const size_t MSG_LEN = 542;
 	char message[542];
 
-	_snprintf_s(message, MSG_LEN, MSG_LEN, "%s:\t%s\0", name, editMsg);
+	_snprintf_s(message, MSG_LEN, MSG_LEN, "%s:\t%s\t%d", name, editMsg,time(0));
 
 	int sent = send(clientSocket, message, MSG_LEN+1, 0);
 
@@ -278,20 +282,25 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 		return -40;
 	}
 
-	SYSTEMTIME  time;
-	GetLocalTime(&time);
+	//SYSTEMTIME  time;
+	//GetLocalTime(&time);
 
-	_snprintf_s(message, MSG_LEN, MSG_LEN, "%s\t %d:%d", message, time.wHour, time.wMinute);
+	//_snprintf_s(message, MSG_LEN, MSG_LEN, "%s\t %d:%d", message, time.wHour, time.wMinute);
 
+		//SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
 
-		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
 	int receveCnt = recv(clientSocket, message,MSG_LEN,0);
+
 
 	if (receveCnt > 0) {
 
-		message[receveCnt] = '\0';
+		//message[receveCnt] = '\0';
+
+		ChatMessage MSG;
+		MSG.parseString(message);
+		Messages.push_back(MSG);
 		
-		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
+		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)MSG.toString());
 
 		
 
@@ -301,6 +310,6 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 	closesocket(clientSocket);
 	WSACleanup();
 
-	SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)L"-End-");
+	//SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)L"-End-");
 	return 0;
 }
