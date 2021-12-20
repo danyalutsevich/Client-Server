@@ -340,30 +340,33 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		} while (strlen(buff) == BUFF_LEN); // '\0' - end of data
 
 		//data is sum of chuncks
-		
+
 		ChatMessage MSG;
-		MSG.parseString(data);
-		Messages.push_back(MSG);
+		if (MSG.parseString(data)) {
 
-		const size_t MAX_LOGDATA = 543;
-		char logData[MAX_LOGDATA];
-	
-		//SYSTEMTIME time;
-		//time = MSG.getSysTime();
+			Messages.push_back(MSG);
 
-		//send message to log
-		//_snprintf_s(logData, MAX_LOGDATA, MAX_LOGDATA, "%s", MSG.toString());
-		//SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)logData);
-
-		char* mst = MSG.toString();
-
-		SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)mst);
+			const size_t MAX_LOGDATA = 543;
+			char logData[MAX_LOGDATA];
 
 
-		//send answer to client - write in socket
+			//send message to log
+
+			SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toClientString());
 
 
-		send(acceptSocket, mst, strlen(mst)+1, 0);
+			//send answer to client - write in socket
+
+			char* mst = MSG.toStringDT();
+
+			send(acceptSocket, mst, strlen(mst) + 1, 0);
+
+		}
+		else {
+
+			SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
+			send(acceptSocket, "500", 4, 0);
+		}
 
 		shutdown(acceptSocket, SD_BOTH);
 		closesocket(acceptSocket);

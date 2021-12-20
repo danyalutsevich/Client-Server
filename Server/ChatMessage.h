@@ -9,13 +9,25 @@
 
 std::string* splitString(std::string str, char sym) {
 
+	int parts = 0;
+
+	for (int i = 0; i < str.size(); i++) {
+
+		if (str[i] == '\t') {
+			parts++;
+		}
+
+	}
+
+	
+
 	if (str.size() == 0) {
 
 		return NULL;
 	}
 
 	size_t pos = 0;
-	int parts = 1;
+	parts = 1;
 
 	while ((pos = str.find(sym, pos + 1)) != std::string::npos) {
 		parts++;
@@ -81,7 +93,7 @@ public:
 	//	return sysTime;
 	//}
 
-	char* toString() {
+	char* toStringDT() {
 		int text_len = strlen(message);
 		int name_len = strlen(name);
 		char* timestamp = new char[16];
@@ -94,7 +106,23 @@ public:
 		}
 		_str = new char[text_len + 1 + name_len + 1 + dt_len + 1];
 
-		sprintf(_str, "%s%s\t%d", getName(), getMessage(), dt);
+		sprintf(_str, "%s\t%s\t%d", getName(), getMessage(), dt);
+
+		return _str;
+
+	}
+
+	char* toString() {
+		int text_len = strlen(message);
+		int name_len = strlen(name);
+
+		if (_str) {
+			delete[] _str;
+
+		}
+		_str = new char[text_len + 1 + name_len + 1];
+
+		sprintf(_str, "%s\t%s", getName(), getMessage());
 
 		return _str;
 
@@ -133,8 +161,41 @@ public:
 
 		setName(userData[0].c_str());
 		setMessage(userData[1].c_str());
+
+		return userData;
+	}
+
+	bool parseStringDT(char* str) {
+
+		std::string* userData = splitString(str, '\t');
+
+		setName(userData[0].c_str());
+		setMessage(userData[1].c_str());
 		dt = atoi(userData[2].c_str());
 		return userData;
+	}
+
+	char* toClientString() {
+
+		if (this->message == NULL || this->name == NULL) {
+			return NULL;
+		}
+		int text_len = strlen(message);
+		int name_len = strlen(name);
+		tm* t = localtime(&this->dt);
+		time_t now_t = time(NULL);
+		tm* now = localtime(&now_t);
+		
+		if (_str) {
+
+			delete[] _str;
+		}
+
+		_str = new char[text_len + 1 + name_len + 1 + 32];
+
+		sprintf(_str, "%.2d:%.2d %s:%s", t->tm_hour, t->tm_min, getName(), getMessage());
+		return _str;
+
 	}
 
 	~ChatMessage() {
