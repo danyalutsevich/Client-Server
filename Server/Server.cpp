@@ -11,6 +11,10 @@
 #include <wchar.h>
 #include <stdio.h>
 #include <time.h>
+#include <string>
+#include <iomanip>
+#include <list>
+#include "ChatMessage.h"
 
 HINSTANCE hInst;
 
@@ -24,6 +28,7 @@ HWND startServer;
 HWND stopServer;
 
 SOCKET listenSocket;
+
 
 LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 DWORD CALLBACK CreateUI(LPVOID);
@@ -50,7 +55,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		return -1;
 	}
 
-	HWND hwnd = CreateWindowExW(0, WIN_CLASS_NAME, L"TCP Chat - Server", WS_OVERLAPPEDWINDOW,50,50, 640, 480, NULL, NULL, hInst, NULL);
+	HWND hwnd = CreateWindowExW(0, WIN_CLASS_NAME, L"TCP Chat - Server", WS_OVERLAPPEDWINDOW, 50, 50, 640, 480, NULL, NULL, hInst, NULL);
 	if (hwnd == NULL) {
 		MessageBoxW(NULL, L"Window create error", L"Window create error", MB_OK | MB_ICONSTOP);
 		return -2;
@@ -81,7 +86,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		switch (cmd) {
 
 		case CMD_START_SERVER:
-			CreateThread(0, 0, StartServer,&hWnd,0,0);
+			CreateThread(0, 0, StartServer, &hWnd, 0, 0);
 			break;
 
 		case CMD_STOP_SERVER:
@@ -125,6 +130,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		HDC dc = (HDC)wParam;
 		HWND ctl = (HWND)lParam;
 
+
 		SetBkColor(dc, RGB(0, 136, 204));
 
 		return (LRESULT)GetStockObject(NULL_BRUSH);
@@ -162,7 +168,7 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 	CreateWindowExW(0, L"Static", L"Port:", WS_CHILD | WS_VISIBLE, 20, 50, 40, 15, hWnd, NULL, hInst, NULL);
 	hPort = CreateWindowExW(0, L"Edit", L"8888", WS_CHILD | WS_VISIBLE, 60, 50, 120, 17, hWnd, NULL, hInst, NULL);
 
-	serverLog = CreateWindowExW(0, L"Listbox", L"", WS_CHILD | WS_VISIBLE | WS_BORDER , 200, 18, 400, 200, hWnd, NULL, hInst, NULL);
+	serverLog = CreateWindowExW(0, L"Listbox", L"", WS_CHILD | WS_VISIBLE | WS_BORDER, 200, 18, 400, 200, hWnd, NULL, hInst, NULL);
 
 	startServer = CreateWindowExW(0, L"Button", L"Start", WS_CHILD | WS_VISIBLE, 10, 100, 75, 23, hWnd, (HMENU)CMD_START_SERVER, hInst, NULL);
 	stopServer = CreateWindowExW(0, L"Button", L"Stop", WS_CHILD | WS_VISIBLE, 115, 100, 75, 23, hWnd, (HMENU)CMD_STOP_SERVER, hInst, NULL);
@@ -177,6 +183,9 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 }
 
 
+
+
+std::list <ChatMessage>Messages;
 
 DWORD CALLBACK StartServer(LPVOID params) {
 	HWND hWnd = *((HWND*)params);
@@ -199,7 +208,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 	}
 
 	listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	
+
 	//Socket preparing
 	if (listenSocket == INVALID_SOCKET) {
 
@@ -230,7 +239,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 	//Socket binding - config [addr] applying to socket
 	err = bind(listenSocket, (SOCKADDR*)&addr, sizeof(addr));
-	
+
 	if (err == SOCKET_ERROR) {
 
 		int lastError = WSAGetLastError();
@@ -262,7 +271,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		return -30;
 
 	}
-	
+
 	//Start of listening - from this point Socket recives data form OS
 	err = listen(listenSocket, SOMAXCONN);
 
@@ -288,7 +297,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 	const size_t BUFF_LEN = 8;
 	const size_t DATA_LEN = 2048;
-	char buff[BUFF_LEN+1];
+	char buff[BUFF_LEN + 1];
 	char data[DATA_LEN]; // big buffer for all transfered chunks
 	int receivedCnt; //chunck size
 
@@ -305,6 +314,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		//communication begins
 		data[0] = '\0';
 		do {
+
 			receivedCnt = recv(acceptSocket, buff, BUFF_LEN, 0);
 
 			if (receivedCnt == 0) { // 0 - connection closed by client
@@ -322,25 +332,42 @@ DWORD CALLBACK StartServer(LPVOID params) {
 				break;
 
 			}
+
 			buff[receivedCnt] = '\0';
 			strcat_s(data, buff); //data+= chunk (buff)
-		} while (strlen(buff)==BUFF_LEN); // '\0' - end of data
-		
+
+		} while (strlen(buff) == BUFF_LEN); // '\0' - end of data
+
 		//data is sum of chuncks
 
+		ChatMessage MSG;
+		if (MSG.parseString(data)) {
 
-		SYSTEMTIME  time;
-		GetLocalTime(&time);
-		
+			Messages.push_back(MSG);
 
-		_snprintf_s(data, MAX_LEN, MAX_LEN, "%s %d:%d", data, time.wHour, time.wMinute);
+			const size_t MAX_LOGDATA = 543;
+			char logData[MAX_LOGDATA];
 
-		SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
 
-		//send answer to client - write in socket
-		send(acceptSocket,"200",4,0);
+			//send message to log
 
-		shutdown(acceptSocket,SD_BOTH);
+			SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
+
+
+			//send answer to client - write in socket
+
+			char* mst = MSG.toStringDT();
+
+			send(acceptSocket, mst, strlen(mst) + 1, 0);
+
+		}
+		else {
+
+			SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
+			send(acceptSocket, "500", 4, 0);
+		}
+
+		shutdown(acceptSocket, SD_BOTH);
 		closesocket(acceptSocket);
 
 	}

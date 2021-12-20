@@ -145,6 +145,7 @@
     <Text Include="Text.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ChatMessage.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
