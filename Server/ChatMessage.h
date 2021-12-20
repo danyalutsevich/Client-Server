@@ -204,7 +204,9 @@ public:
 		}
 		int text_len = strlen(message);
 		int name_len = strlen(name);
-		tm* t = localtime(&this->dt);
+		//tm* t = localtime(&this->dt);
+		tm* t = new tm;
+		localtime_s(t, &this->dt);
 		time_t now_t = time(NULL);
 		tm* now = localtime(&now_t);
 
@@ -215,12 +217,12 @@ public:
 
 		_str = new char[text_len + 1 + name_len + 1 + 32];
 
-		if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday == now->tm_mday) {
+		/*if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday == now->tm_mday) {
 
 			sprintf(_str, "Today at %.2d:%.2d %s:%s", t->tm_hour, t->tm_min, getName(), getMessage());
 
-		}
-		else if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday+1 == now->tm_mday) {
+		}*/
+		/*else*/ if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday+1 == now->tm_mday) {
 
 			sprintf(_str, "Yesterday at %.2d:%.2d %s:%s", t->tm_hour, t->tm_min, getName(), getMessage());
 
@@ -235,7 +237,7 @@ public:
 			sprintf(_str, "%d:%d:%d at %.2d:%.2d %s:%s", t->tm_mday,t->tm_mon,t->tm_year, t->tm_hour, t->tm_min, getName(), getMessage());
 
 		}
-
+		delete t;
 		return _str;
 
 

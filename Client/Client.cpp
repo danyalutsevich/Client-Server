@@ -3,6 +3,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #define CMD_SEND_MESSAGE 1000
+#define CMD_DDOS 1001
+
 #include "resource.h"
 #include <WinSock2.h>
 #include <WS2tcpip.h>
@@ -19,9 +21,12 @@ HWND chatLog;
 HWND sendMessage;
 HWND hPort;
 HWND hIP;
+HWND DDOS;
 HWND hName;
 HWND grpEndPoint;
 HWND editMessage;
+
+bool ddosFlag=false;
 
 std::list<ChatMessage> Messages;
 
@@ -86,13 +91,36 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			CreateThread(0, 0, SendChatMessage, &hWnd, 0, 0);
 			//SendChatMessage(&hWnd);
 			break;
+		case CMD_DDOS:
 
+			ddosFlag ? ddosFlag = false : ddosFlag = true;
+
+			if (ddosFlag) {
+
+				SetTimer(hWnd,CMD_DDOS,1,NULL);
+
+			}
+			else {
+				KillTimer(hWnd, CMD_DDOS);
+			}
+
+			break;
 
 		}
 
 		break;
 	}
 
+
+	case WM_TIMER:
+
+		if (wParam == CMD_DDOS) {
+
+			SendChatMessage(&hWnd);
+
+		}
+
+		break;
 	case WM_PAINT: {
 
 		PAINTSTRUCT ps;
@@ -162,6 +190,8 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 	chatLog = CreateWindowExW(0, L"Listbox", L"", WS_CHILD | WS_VISIBLE | WS_BORDER, 200, 18, 400, 200, hWnd, NULL, hInst, NULL);
 
 	sendMessage = CreateWindowExW(0, L"Button", L"Send", WS_CHILD | WS_VISIBLE, 10, 190, 75, 23, hWnd, (HMENU)CMD_SEND_MESSAGE, hInst, NULL);
+	
+	DDOS = CreateWindowExW(0, L"Button", L"DDOS", WS_CHILD | WS_VISIBLE, 115, 190, 75, 23, hWnd, (HMENU)CMD_DDOS, hInst, NULL);
 
 	editMessage = CreateWindowExW(0, L"Edit", L"", WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 100, 180, 50, hWnd, NULL, hInst, NULL);
 
