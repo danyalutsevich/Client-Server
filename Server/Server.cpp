@@ -125,7 +125,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		HDC dc = (HDC)wParam;
 		HWND ctl = (HWND)lParam;
 
-		SetBkMode(dc, TRANSPARENT);
 		SetBkColor(dc, RGB(0, 136, 204));
 
 		return (LRESULT)GetStockObject(NULL_BRUSH);
@@ -136,7 +135,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		HDC dc = (HDC)wParam;
 		HWND ctl = (HWND)lParam;
 
-		SetBkMode(dc, TRANSPARENT);
 		SetBkColor(dc, RGB(0, 136, 204));
 
 		return (LRESULT)GetStockObject(NULL_BRUSH);
