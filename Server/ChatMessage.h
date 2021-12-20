@@ -230,6 +230,11 @@ public:
 			sprintf(_str, "%d days ago at %.2d:%.2d %s:%s", now->tm_mday - t->tm_mday, t->tm_hour, t->tm_min, getName(), getMessage());
 
 		}
+		else {
+
+			sprintf(_str, "%d:%d:%d at %.2d:%.2d %s:%s", t->tm_mday,t->tm_mon,t->tm_year, t->tm_hour, t->tm_min, getName(), getMessage());
+
+		}
 
 		return _str;
 
