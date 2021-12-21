@@ -36,6 +36,7 @@ SOCKET clientSocket;
 LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 DWORD CALLBACK CreateUI(LPVOID);
 DWORD CALLBACK SendChatMessage(LPVOID);
+bool DeserializeMessages(char*);
 
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_     PWSTR cmdLine, _In_     int showMode) {
 	hInst = hInstance;
@@ -189,7 +190,7 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 
 	sendMessage = CreateWindowExW(0, L"Button", L"Send", WS_CHILD | WS_VISIBLE, 10, 190, 75, 23, hWnd, (HMENU)CMD_SEND_MESSAGE, hInst, NULL);
 	
-	DDOS = CreateWindowExW(0, L"Button", L"DDOS", WS_CHILD | WS_VISIBLE, 115, 190, 75, 23, hWnd, (HMENU)CMD_DDOS, hInst, NULL);
+	DDOS = CreateWindowExW(0, L"Button", L"DDOS", WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON | WS_TABSTOP, 115, 190, 75, 23, hWnd, (HMENU)CMD_DDOS, hInst, NULL);
 
 	editMessage = CreateWindowExW(0, L"Edit", L"", WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 100, 180, 50, hWnd, NULL, hInst, NULL);
 
@@ -292,8 +293,8 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 	char name[30];
 	SendMessageA(hName, WM_GETTEXT, 30, (LPARAM)name);
 
-	const size_t MSG_LEN = 542;
-	char message[542];
+	const size_t MSG_LEN = 4096;
+	char message[MSG_LEN];
 
 	_snprintf_s(message, MSG_LEN, MSG_LEN, "%s\t%s", name, editMsg);
 
@@ -314,21 +315,36 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 
 	int receveCnt = recv(clientSocket, message, MSG_LEN, 0);
 
+	SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
 
 	if (receveCnt > 0) {
 
-		
-
 		ChatMessage MSG;
-		if (MSG.parseStringDT(message)) {
+
+		//Messages = MSG.tolist(message);
+
+		//DeserializeMessages(message);
+
+		//for (auto i = Messages.begin(); i != Messages.end();i++) {
+
+			//SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)i->toClientString());
+
+		//}
+
+		/*if (MSG.parseStringDT(message)) {
 
 			Messages.push_back(MSG);
 
+			
 			SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
 
-		}
+		}*/
 
 
+	}
+	else {
+
+			SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"recv err");
 	}
 
 	shutdown(clientSocket, SD_BOTH);
@@ -337,4 +353,41 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 
 	//SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)L"-End-");
 	return 0;
+}
+
+bool DeserializeMessages(char* str) {
+
+	if (str == NULL) {
+		return false;
+	}
+
+	size_t len = 0;
+	size_t r = 0;
+
+	char* start = str;
+
+	//Messages.clear();
+
+	while (str[len]!='\0') {
+
+		if (str[len] != '\r') {
+
+			r += 1;
+			str[len] = '\0';
+			ChatMessage n ;
+			n.parseStringDT(start);
+			Messages.push_back(n);
+			start = str + len + 1;
+
+		}
+		
+		len += 1;
+
+	}
+	ChatMessage n;
+	n.parseStringDT(start);
+	Messages.push_back(n);
+
+	return true;
+
 }

@@ -2,8 +2,10 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
+#define MAX_MESSAGES 100
 #define CMD_START_SERVER 1000
 #define CMD_STOP_SERVER 1001
+
 #include "resource.h"
 #include <WinSock2.h>
 #include <WS2tcpip.h>
@@ -341,9 +343,16 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		//data is sum of chuncks
 
 		ChatMessage MSG;
+
 		if (MSG.parseString(data)) {
 
 			Messages.push_back(MSG);
+
+			if (Messages.size() > MAX_MESSAGES) {
+
+				Messages.pop_front();
+
+			}
 
 			const size_t MAX_LOGDATA = 543;
 			char logData[MAX_LOGDATA];
@@ -356,12 +365,15 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 			//send answer to client - write in socket
 
-			char* mst = MSG.toStringDT();
+			//char* mst = MSG.toStringDT();
+
+			const char* mst = MSG.fromListToString(Messages);
 
 			send(acceptSocket, mst, strlen(mst) + 1, 0);
 
 		}
 		else {
+
 
 			SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
 			send(acceptSocket, "500", 4, 0);

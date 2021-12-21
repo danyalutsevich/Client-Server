@@ -159,7 +159,7 @@ public:
 		return userData;
 	}
 
-	bool parseStringDT(char* str) {
+	bool parseStringDT(const char* str) {
 
 		std::string* userData = splitString(str, '\t');
 
@@ -229,7 +229,7 @@ public:
 		}
 		else {
 
-			sprintf(_str, "%d:%d:%d at %.2d:%.2d %s:%s", t->tm_mday,t->tm_mon,t->tm_year, t->tm_hour, t->tm_min, getName(), getMessage());
+			sprintf(_str, "%.2d:%.2d:%d at %.2d:%.2d %s:%s", t->tm_mday,t->tm_mon,t->tm_year, t->tm_hour, t->tm_min, getName(), getMessage());
 
 		}
 		delete t;
@@ -237,6 +237,59 @@ public:
 
 
 	}
+
+
+
+	std::list<ChatMessage> tolist(char* str) {
+
+		std::list<ChatMessage>* Messages = new std::list<ChatMessage>;
+
+		std::string* unserialized = splitString(str, '\r');
+
+		ChatMessage msg;
+
+		int parts=0;
+
+		for (int i = 0; i < strlen(str); i++) {
+
+			if (str[i] == '\r') {
+
+				parts++;
+
+			}
+
+		}
+
+		for (int i = 0; i < parts; i++) {//parts+1 if 
+
+			msg.parseStringDT(unserialized[i].c_str());
+
+			Messages->push_back(msg);
+
+		}
+
+		return *Messages;
+
+	}
+
+	const char* fromListToString(std::list<ChatMessage> list) {
+		
+		std::string *str = new std::string;
+
+		for (auto i = list.begin(); i!=  list.end(); i++) {
+
+			*str += i->toStringDT();
+		
+			*str += '\r';
+
+		}
+
+		//str[str->size()] = '\0';
+
+		return str->c_str();
+
+	}
+
 
 	~ChatMessage() {
 
@@ -248,3 +301,14 @@ public:
 	}
 
 };
+
+
+ChatMessage* ChatMessageFactory(char* str) {
+
+	ChatMessage* message = new ChatMessage;
+
+	message->parseString(str);
+
+	return message;
+
+}
