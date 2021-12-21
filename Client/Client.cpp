@@ -315,13 +315,14 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 
 	int receveCnt = recv(clientSocket, message, MSG_LEN, 0);
 
+	SendMessageA(chatLog, LB_RESETCONTENT, 0, (LPARAM)NULL);
 	SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
 
 	if (receveCnt > 0) {
 
 		ChatMessage MSG;
 
-		//Messages = MSG.tolist(message);
+		Messages = MSG.tolist(message);
 
 		//DeserializeMessages(message);
 

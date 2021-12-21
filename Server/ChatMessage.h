@@ -13,11 +13,12 @@ std::string* splitString(std::string str, char sym) {
 
 	for (int i = 0; i < str.size(); i++) {
 
-		if (str[i] == '\t') {
+		if (str[i] == sym) {
 			parts++;
 		}
 
 	}
+
 
 
 	if (str.size() == 0) {
@@ -276,15 +277,31 @@ public:
 		
 		std::string *str = new std::string;
 
-		for (auto i = list.begin(); i!=  list.end(); i++) {
-
-			*str += i->toStringDT();
 		
-			*str += '\r';
+
+		if (list.size() == 1) {
+
+			*str = list.begin()->toStringDT();
+			return str->c_str();
 
 		}
 
-		//str[str->size()] = '\0';
+		int it = 0;
+
+		for (auto i = list.begin(); i != list.end(); i++) {
+
+			*str += i->toStringDT();
+
+			it++;
+
+			if (it != list.size()) {
+
+				*str += '\r';
+			}
+
+		}
+
+		
 
 		return str->c_str();
 
@@ -301,14 +318,3 @@ public:
 	}
 
 };
-
-
-ChatMessage* ChatMessageFactory(char* str) {
-
-	ChatMessage* message = new ChatMessage;
-
-	message->parseString(str);
-
-	return message;
-
-}
