@@ -365,7 +365,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 			//send answer to client - write in socket
 
-			//char* mst = MSG.toStringDT();
+			
 
 			const char* mst = MSG.fromListToString(Messages);
 

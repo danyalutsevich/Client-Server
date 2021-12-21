@@ -316,31 +316,22 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 	int receveCnt = recv(clientSocket, message, MSG_LEN, 0);
 
 	SendMessageA(chatLog, LB_RESETCONTENT, 0, (LPARAM)NULL);
-	SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
+	//SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
 
 	if (receveCnt > 0) {
 
 		ChatMessage MSG;
 
-		Messages = MSG.tolist(message);
 
-		//DeserializeMessages(message);
+		DeserializeMessages(message);
 
-		//for (auto i = Messages.begin(); i != Messages.end();i++) {
+		for (auto i = Messages.begin(); i != Messages.end();i++) {
 
-			//SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)i->toClientString());
+			SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)i->toClientString());
 
-		//}
+		}
 
-		/*if (MSG.parseStringDT(message)) {
-
-			Messages.push_back(MSG);
-
-			
-			SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
-
-		}*/
-
+		
 
 	}
 	else {
@@ -352,7 +343,6 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 	closesocket(clientSocket);
 	WSACleanup();
 
-	//SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)L"-End-");
 	return 0;
 }
 
@@ -367,11 +357,11 @@ bool DeserializeMessages(char* str) {
 
 	char* start = str;
 
-	//Messages.clear();
+	Messages.clear();
 
 	while (str[len]!='\0') {
 
-		if (str[len] != '\r') {
+		if (str[len] == '\r') {
 
 			r += 1;
 			str[len] = '\0';
