@@ -35,11 +35,14 @@ HANDLE mutex = NULL;
 const size_t MSG_LEN = 4096;
 char message[MSG_LEN];
 
+int sameName;
+
 bool ddosFlag = false;
+bool connected = false;
 
 std::list<ChatMessage>* Messages = new std::list<ChatMessage>;
 
-
+HINSTANCE hPrev;
 
 LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 DWORD CALLBACK CreateUI(LPVOID);
@@ -50,7 +53,7 @@ bool DeserializeMessages(char*);
 
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_     PWSTR cmdLine, _In_     int showMode) {
 	hInst = hInstance;
-
+	hPrev = hPrevInstance;
 	const WCHAR WIN_CLASS_NAME[] = L"ClientWindow";
 	WNDCLASS wc = { };
 	wc.lpfnWndProc = WinProc;
@@ -77,6 +80,11 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		TranslateMessage(&msg);
 		DispatchMessageW(&msg);
 	}
+
+
+		
+
+
 	return 0;
 }
 
@@ -94,7 +102,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			return 0;
 		}
 
-		SetTimer(hWnd, CMD_SYNC, 1000, NULL);
+		
 		break;
 	case WM_COMMAND: {
 
@@ -126,10 +134,27 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 		case CMD_ENTER:
 
+			if (SyncChatMessage(&hWnd) == 0) {
+
+				SetTimer(hWnd, CMD_SYNC, 1000, NULL);
+
+			}
+			else {
+
+				MessageBoxA(hWnd, "Sync error", "Sync error", MB_OK | MB_ICONERROR);
+				PostQuitMessage(0);
+				return 0;
+			}
+			connected ? connected = false : connected = true;
+
+			EnableWindow(DDOS,connected);
+			EnableWindow(sendMessage,connected);
+			if (!connected) {
+				KillTimer(hWnd,CMD_SYNC);
+
+			}
 
 			break;
-
-
 		}
 
 		break;
@@ -140,13 +165,12 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 		if (wParam == CMD_DDOS) {
 
-			SendChatMessage(&hWnd);
-
+			CreateThread(NULL,0,SendChatMessage,&hWnd,0,NULL);
 		}
 
 		if (wParam == CMD_SYNC) {
-			CreateThread(NULL, 0, SyncChatMessage, &hWnd, NULL, 0);
 
+			CreateThread(NULL, 0, SyncChatMessage, &hWnd, NULL, 0);
 		}
 
 		break;
@@ -200,6 +224,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	case WM_DESTROY:
 
 		KillTimer(hWnd, CMD_SYNC);
+		KillTimer(hWnd, CMD_DDOS);
 		CloseHandle(mutex);
 		PostQuitMessage(0);
 		break;
@@ -229,9 +254,10 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 
 	hName = CreateWindowExW(0, L"Edit", L"Danya", WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 160, 180, 23, hWnd, NULL, hInst, NULL);
 
-	ENTER = CreateWindowExW(0,L"Button",L"Enter",WS_CHILD|WS_VISIBLE,115,70,75,20,hWnd,(HMENU)CMD_ENTER,hInst,NULL);
+	ENTER = CreateWindowExW(0,L"Button",L"Enter",WS_CHILD|WS_VISIBLE| BS_AUTOCHECKBOX | BS_PUSHLIKE,115,70,75,20,hWnd,(HMENU)CMD_ENTER,hInst,NULL);
 
-
+	EnableWindow(DDOS, connected);
+	EnableWindow(sendMessage, connected);
 
 
 	return 0;
@@ -340,8 +366,15 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 		SendMessageA(hName, WM_GETTEXT, 30, (LPARAM)name);
 
 
+		//if (!hPrev) {
 
-		_snprintf_s(message, MSG_LEN, MSG_LEN, "%s\t%s", name, editMsg);
+		//_snprintf_s(message, MSG_LEN, MSG_LEN, "%s\t%s", name, editMsg);
+		//}
+		//else {
+
+		_snprintf_s(message, MSG_LEN, MSG_LEN, "%s%d\t%s", name,hPrev, editMsg);
+
+		//}
 
 		int sent = send(clientSocket, message, MSG_LEN + 1, 0);
 
@@ -398,6 +431,7 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 }
 
 bool DeserializeMessages(char* str) {
+
 
 	if (str == NULL) {
 		return false;
