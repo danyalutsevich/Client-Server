@@ -158,6 +158,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			}
 			else {
 				SendMessageA(ENTER,WM_SETTEXT,0,(LPARAM)"Connect");
+				SendMessageA(chatLog,LB_ADDSTRING,0,(LPARAM)"Sync disabled");
 
 				KillTimer(hWnd,CMD_SYNC);
 
