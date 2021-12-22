@@ -47,7 +47,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	wc.lpfnWndProc = WinProc;
 	wc.hInstance = hInst;
 	wc.lpszClassName = WIN_CLASS_NAME;
-	wc.hbrBackground = CreateSolidBrush(RGB(0,136,204));
+	wc.hbrBackground = CreateSolidBrush(RGB(0, 136, 204));
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1)); //handle to a small icon
 
@@ -341,44 +341,62 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		} while (strlen(buff) == BUFF_LEN); // '\0' - end of data
 
 		//data is sum of chuncks
+			ChatMessage MSG;
 
-		ChatMessage MSG;
+		if (strlen(data)==0) {
 
-		if (MSG.parseString(data)) {
+			if (Messages.size() > 0) {
 
-			Messages.push_back(MSG);
 
-			if (Messages.size() > MAX_MESSAGES) {
+				const char* mst = MSG.fromListToString(Messages);
 
-				Messages.pop_front();
+				send(acceptSocket, mst, strlen(mst) + 1, 0);
 
 			}
 
-			const size_t MAX_LOGDATA = 543;
-			char logData[MAX_LOGDATA];
+		}
+		else
+		{
 
 
-			//send message to log
 
-			SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
+			if (MSG.parseString(data)) {
+
+				Messages.push_back(MSG);
+
+				if (Messages.size() > MAX_MESSAGES) {
+
+					Messages.pop_front();
+
+				}
+
+				const size_t MAX_LOGDATA = 543;
+				char logData[MAX_LOGDATA];
 
 
-			//send answer to client - write in socket
+				//send message to log
 
-			
+				SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
 
-			const char* mst = MSG.fromListToString(Messages);
 
-			send(acceptSocket, mst, strlen(mst) + 1, 0);
+				//send answer to client - write in socket
+
+
+
+				const char* mst = MSG.fromListToString(Messages);
+
+				send(acceptSocket, mst, strlen(mst) + 1, 0);
+				//delete[]mst;
+
+			}
+			else {
+
+
+				SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
+				send(acceptSocket, "500", 4, 0);
+			}
 
 		}
-		else {
-
-
-			SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
-			send(acceptSocket, "500", 4, 0);
-		}
-
 		shutdown(acceptSocket, SD_BOTH);
 		closesocket(acceptSocket);
 

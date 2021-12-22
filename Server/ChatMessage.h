@@ -314,6 +314,7 @@ public:
 
 			delete[] _str;
 
+
 		}
 	}
 
