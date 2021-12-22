@@ -343,7 +343,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		//data is sum of chuncks
 			ChatMessage MSG;
 
-		if (strlen(data)==0) {
+		if (*data=='\0') {
 
 			if (Messages.size() > 0) {
 
@@ -377,7 +377,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 				//send message to log
 
 				SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
-
+				SendMessageA(serverLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
 
 				//send answer to client - write in socket
 
@@ -386,7 +386,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 				const char* mst = MSG.fromListToString(Messages);
 
 				send(acceptSocket, mst, strlen(mst) + 1, 0);
-				//delete[]mst;
+				delete[]mst;
 
 			}
 			else {

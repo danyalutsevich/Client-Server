@@ -59,6 +59,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	wc.lpfnWndProc = WinProc;
 	wc.hInstance = hInst;
 	wc.lpszClassName = WIN_CLASS_NAME;
+	wc.hbrBackground = CreateSolidBrush(RGB(0,136,204));
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1));
 
@@ -141,15 +142,23 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			}
 			else {
 
-				MessageBoxA(hWnd, "Sync error", "Sync error", MB_OK | MB_ICONERROR);
-				PostQuitMessage(0);
-				return 0;
+				MessageBoxA(hWnd, "Sync error unable to connect to server", "Sync error", MB_OK | MB_ICONERROR);
+				//PostQuitMessage(0);
+				//return 0;
 			}
 			connected ? connected = false : connected = true;
 
 			EnableWindow(DDOS,connected);
 			EnableWindow(sendMessage,connected);
-			if (!connected) {
+
+			if (connected) {
+
+				SendMessageA(ENTER,WM_SETTEXT,0,(LPARAM)"Disconnect");
+
+			}
+			else {
+				SendMessageA(ENTER,WM_SETTEXT,0,(LPARAM)"Connect");
+
 				KillTimer(hWnd,CMD_SYNC);
 
 			}
@@ -254,7 +263,9 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 
 	hName = CreateWindowExW(0, L"Edit", L"Danya", WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 160, 180, 23, hWnd, NULL, hInst, NULL);
 
-	ENTER = CreateWindowExW(0,L"Button",L"Enter",WS_CHILD|WS_VISIBLE| BS_AUTOCHECKBOX | BS_PUSHLIKE,115,70,75,20,hWnd,(HMENU)CMD_ENTER,hInst,NULL);
+	ENTER = CreateWindowExW(0,L"Button",L"Connect",WS_CHILD|WS_VISIBLE| BS_AUTOCHECKBOX | BS_PUSHLIKE,110,70,80,20,hWnd,(HMENU)CMD_ENTER,hInst,NULL);
+
+	SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"Press connect to enter the chat");
 
 	EnableWindow(DDOS, connected);
 	EnableWindow(sendMessage, connected);
@@ -419,7 +430,7 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 			SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"recv err");
 
 		}
-
+		SendMessageW(chatLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
 		shutdown(clientSocket, SD_BOTH);
 		closesocket(clientSocket);
 		WSACleanup();
@@ -602,7 +613,7 @@ DWORD CALLBACK SyncChatMessage(LPVOID params) {
 			}
 
 		}
-
+		SendMessageW(chatLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
 
 		shutdown(clientSocket, SD_BOTH);
 		closesocket(clientSocket);

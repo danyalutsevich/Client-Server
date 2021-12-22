@@ -276,22 +276,25 @@ public:
 	const char* fromListToString(std::list<ChatMessage> list) {
 		
 		std::string *str = new std::string;
+		char* DTstring=new char[1000];
 
 		
 
 		if (list.size() == 1) {
 
-			*str = list.begin()->toStringDT();
+			sprintf(DTstring, "%s\t%s\t%d", list.begin()->getName(), list.begin()->getMessage(), list.begin()->dt);
+			*str = DTstring;
 			return str->c_str();
 
 		}
 
 		int it = 0;
 
+
 		for (auto i = list.begin(); i != list.end(); i++) {
 
-			*str += i->toStringDT();
-
+			sprintf(DTstring,"%s\t%s\t%d",i->getName(), i->getMessage(),i->dt);
+			*str += DTstring;
 			it++;
 
 			if (it != list.size()) {
