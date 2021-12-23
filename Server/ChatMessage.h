@@ -63,12 +63,13 @@ private:
 	char* name;
 	char* message;
 	time_t dt;
+	long long id;
 	char* _str;
 
 
 public:
 
-	ChatMessage() :name{ NULL }, message{ NULL }, dt{ time(NULL) }, _str{ NULL }{
+	ChatMessage() :name{ NULL }, message{ NULL }, dt{ time(NULL) }, _str{ NULL }, id{0}{
 
 	}
 	ChatMessage(char* name, char* message) :ChatMessage() {
@@ -86,43 +87,6 @@ public:
 
 		return message;
 	}
-
-
-	char* toStringDT() {
-		int text_len = strlen(message);
-		int name_len = strlen(name);
-		char* timestamp = new char[16];
-		_itoa(this->dt, timestamp, 10);
-		int dt_len = strlen(timestamp);
-
-		if (_str) {
-			delete[] _str;
-
-		}
-		_str = new char[text_len + 1 + name_len + 1 + dt_len + 1];
-
-		sprintf(_str, "%s\t%s\t%d", getName(), getMessage(), dt);
-
-		return _str;
-
-	}
-
-	char* toString() {
-		int text_len = strlen(message);
-		int name_len = strlen(name);
-
-		if (_str) {
-			delete[] _str;
-
-		}
-		_str = new char[text_len + 1 + name_len + 1];
-
-		sprintf(_str, "%s\t%s", getName(), getMessage());
-
-		return _str;
-
-	}
-
 	void setName(const char* name) {
 
 		if (!name) {
@@ -149,6 +113,26 @@ public:
 		this->message = new char[strlen(message)];
 		strcpy(this->message, message);
 	}
+	void setId(long long id) {
+
+		this->id = id;
+
+	}
+	long long getId() {
+
+		return id;
+	}
+
+	~ChatMessage() {
+
+		if (_str) {
+
+			delete[] _str;
+
+
+		}
+	}
+
 
 	bool parseString(char* str) {
 
@@ -156,7 +140,8 @@ public:
 
 		setName(userData[0].c_str());
 		setMessage(userData[1].c_str());
-
+		dt = time(0);
+		
 		return userData;
 	}
 
@@ -167,31 +152,89 @@ public:
 		setName(userData[0].c_str());
 		setMessage(userData[1].c_str());
 		dt = atoi(userData[2].c_str());
+		id = atoll(userData[3].c_str());
 		return userData;
 	}
 
-	char* toClientString() {
 
-		if (this->message == NULL || this->name == NULL) {
-			return NULL;
-		}
+
+	//char* toStringDT() {
+	//	int text_len = strlen(message);
+	//	int name_len = strlen(name);
+	//	char* timestamp = new char[16];
+	//	_itoa(this->dt, timestamp, 10);
+	//	int dt_len = strlen(timestamp);
+
+	//	if (_str) {
+	//		delete[] _str;
+
+	//	}
+	//	_str = new char[text_len + 1 + name_len + 1 + dt_len + 1];
+
+	//	sprintf(_str, "%s\t%s\t%d", getName(), getMessage(), dt);
+
+	//	return _str;
+
+	//}
+
+	char* toString() {
 		int text_len = strlen(message);
 		int name_len = strlen(name);
-		tm* t = localtime(&this->dt);
-		time_t now_t = time(NULL);
-		tm* now = localtime(&now_t);
-		
+
 		if (_str) {
-
 			delete[] _str;
+
 		}
+		_str = new char[text_len + 1 + name_len + 1+32];
 
-		_str = new char[text_len + 1 + name_len + 1 + 32];
+		sprintf(_str, "%s\t%s\t%lld", getName(), getMessage(),getId());
 
-		sprintf(_str, "%.2d:%.2d %s:%s", t->tm_hour, t->tm_min, getName(), getMessage());
 		return _str;
 
 	}
+
+	//bool parseString(char* str) {
+
+	//	std::string* userData = splitString(str, '\t');
+
+	//	setName(userData[0].c_str());
+	//	setMessage(userData[1].c_str());
+
+	//	return userData;
+	//}
+
+	//bool parseStringDT(const char* str) {
+
+	//	std::string* userData = splitString(str, '\t');
+
+	//	setName(userData[0].c_str());
+	//	setMessage(userData[1].c_str());
+	//	dt = atoi(userData[2].c_str());
+	//	return userData;
+	//}
+
+	//char* toClientString() {
+
+	//	if (this->message == NULL || this->name == NULL) {
+	//		return NULL;
+	//	}
+	//	int text_len = strlen(message);
+	//	int name_len = strlen(name);
+	//	tm* t = localtime(&this->dt);
+	//	time_t now_t = time(NULL);
+	//	tm* now = localtime(&now_t);
+	//	
+	//	if (_str) {
+
+	//		delete[] _str;
+	//	}
+
+	//	_str = new char[text_len + 1 + name_len + 1 + 32];
+
+	//	sprintf(_str, "%.2d:%.2d %s:%s", t->tm_hour, t->tm_min, getName(), getMessage());
+	//	return _str;
+
+	//}
 
 	char* toDateString() {
 
@@ -215,7 +258,7 @@ public:
 
 		if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday == now->tm_mday) {
 
-			sprintf(_str, "Today at %.2d:%.2d %s:%s", t->tm_hour, t->tm_min, getName(), getMessage());
+			sprintf(_str, "Today at %.2d:%.2d:%.2d %s:%s %lld", t->tm_hour, t->tm_min,t->tm_sec, getName(), getMessage(),getId());
 
 		}
 		else if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday+1 == now->tm_mday) {
@@ -239,40 +282,6 @@ public:
 
 	}
 
-
-
-	std::list<ChatMessage> tolist(char* str) {
-
-		std::list<ChatMessage>* Messages = new std::list<ChatMessage>;
-
-		std::string* unserialized = splitString(str, '\r');
-
-		ChatMessage msg;
-
-		int parts=0;
-
-		for (int i = 0; i < strlen(str); i++) {
-
-			if (str[i] == '\r') {
-
-				parts++;
-
-			}
-
-		}
-
-		for (int i = 0; i < parts; i++) {//parts+1 if 
-
-			msg.parseStringDT(unserialized[i].c_str());
-
-			Messages->push_back(msg);
-
-		}
-
-		return *Messages;
-
-	}
-
 	const char* fromListToString(std::list<ChatMessage> list) {
 		
 		std::string *str = new std::string;
@@ -282,7 +291,7 @@ public:
 
 		if (list.size() == 1) {
 
-			sprintf(DTstring, "%s\t%s\t%d", list.begin()->getName(), list.begin()->getMessage(), list.begin()->dt);
+			sprintf(DTstring, "%s\t%s\t%d\t%lld", list.begin()->getName(), list.begin()->getMessage(), list.begin()->dt,list.begin()->getId());
 			*str = DTstring;
 			return str->c_str();
 
@@ -293,7 +302,8 @@ public:
 
 		for (auto i = list.begin(); i != list.end(); i++) {
 
-			sprintf(DTstring,"%s\t%s\t%d",i->getName(), i->getMessage(),i->dt);
+			sprintf(DTstring, "%s\t%s\t%d\t%lld", i->getName(), i->getMessage(), i->dt, i->getId());
+
 			*str += DTstring;
 			it++;
 
@@ -311,14 +321,6 @@ public:
 	}
 
 
-	~ChatMessage() {
-
-		if (_str) {
-
-			delete[] _str;
-
-
-		}
-	}
+	
 
 };

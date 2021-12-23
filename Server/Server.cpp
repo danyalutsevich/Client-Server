@@ -25,12 +25,13 @@ HWND serverLog;
 
 HWND hIP;
 HWND hPort;
-
+long long mid;
 HWND startServer;
 HWND stopServer;
 
 SOCKET listenSocket;
 
+std::list <ChatMessage>Messages;
 
 LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 DWORD CALLBACK CreateUI(LPVOID);
@@ -39,7 +40,7 @@ DWORD CALLBACK StopServer(LPVOID);
 
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_     PWSTR cmdLine, _In_     int showMode) {
 	hInst = hInstance;
-
+	mid = time(NULL);
 
 	const WCHAR WIN_CLASS_NAME[] = L"ServerWindow";
 
@@ -156,7 +157,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	return DefWindowProcW(hWnd, msg, wParam, lParam);
 }
 
-
 DWORD CALLBACK CreateUI(LPVOID params) {
 
 	HWND hWnd = *((HWND*)params);
@@ -183,11 +183,6 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 
 	return 0;
 }
-
-
-
-
-std::list <ChatMessage>Messages;
 
 DWORD CALLBACK StartServer(LPVOID params) {
 	HWND hWnd = *((HWND*)params);
@@ -303,6 +298,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 	char data[DATA_LEN]; // big buffer for all transfered chunks
 	int receivedCnt; //chunck size
 
+
 	while (true) {
 		// wait for network activity
 		acceptSocket = accept(listenSocket, NULL, NULL);
@@ -341,13 +337,16 @@ DWORD CALLBACK StartServer(LPVOID params) {
 		} while (strlen(buff) == BUFF_LEN); // '\0' - end of data
 
 		//data is sum of chuncks
-			ChatMessage MSG;
+		
+		ChatMessage MSG;
+
+		
+		
 
 		if (*data=='\0') {
 
 			if (Messages.size() > 0) {
-
-
+				MSG.setId(mid++);
 				const char* mst = MSG.fromListToString(Messages);
 
 				send(acceptSocket, mst, strlen(mst) + 1, 0);
@@ -361,7 +360,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 
 			if (MSG.parseString(data)) {
-
+				MSG.setId(mid++);
 				Messages.push_back(MSG);
 
 				if (Messages.size() > MAX_MESSAGES) {
@@ -397,6 +396,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 			}
 
 		}
+
 		shutdown(acceptSocket, SD_BOTH);
 		closesocket(acceptSocket);
 
