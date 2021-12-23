@@ -14,6 +14,8 @@
 #include <wchar.h>
 #include <stdio.h>
 #include <list>
+#include <vector>
+#include <map>
 #include "../Server/ChatMessage.h"
 
 HINSTANCE hInst;
@@ -33,7 +35,7 @@ HANDLE mutex = NULL;
 
 
 
-const size_t MSG_LEN = 4096;
+const size_t MSG_LEN = 4096*2;
 char message[MSG_LEN];
 
 bool sameName = false;
@@ -60,7 +62,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	wc.lpfnWndProc = WinProc;
 	wc.hInstance = hInst;
 	wc.lpszClassName = WIN_CLASS_NAME;
-	wc.hbrBackground = CreateSolidBrush(RGB(0,136,204));
+	wc.hbrBackground = CreateSolidBrush(RGB(0, 136, 204));
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1));
 
@@ -84,7 +86,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	}
 
 
-		
+
 
 
 	return 0;
@@ -104,7 +106,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			return 0;
 		}
 
-		
+
 		break;
 	case WM_COMMAND: {
 
@@ -149,19 +151,19 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			}
 			connected ? connected = false : connected = true;
 
-			EnableWindow(DDOS,connected);
-			EnableWindow(sendMessage,connected);
+			EnableWindow(DDOS, connected);
+			EnableWindow(sendMessage, connected);
 
 			if (connected) {
 
-				SendMessageA(ENTER,WM_SETTEXT,0,(LPARAM)"Disconnect");
+				SendMessageA(ENTER, WM_SETTEXT, 0, (LPARAM)"Disconnect");
 
 			}
 			else {
-				SendMessageA(ENTER,WM_SETTEXT,0,(LPARAM)"Connect");
-				SendMessageA(chatLog,LB_ADDSTRING,0,(LPARAM)"Sync disabled");
+				SendMessageA(ENTER, WM_SETTEXT, 0, (LPARAM)"Connect");
+				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"Sync disabled");
 
-				KillTimer(hWnd,CMD_SYNC);
+				KillTimer(hWnd, CMD_SYNC);
 
 			}
 
@@ -176,7 +178,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 		if (wParam == CMD_DDOS) {
 
-			CreateThread(NULL,0,SendChatMessage,&hWnd,0,NULL);
+			CreateThread(NULL, 0, SendChatMessage, &hWnd, 0, NULL);
 		}
 
 		if (wParam == CMD_SYNC) {
@@ -265,7 +267,7 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 
 	hName = CreateWindowExW(0, L"Edit", L"Danya", WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 160, 180, 23, hWnd, NULL, hInst, NULL);
 
-	ENTER = CreateWindowExW(0,L"Button",L"Connect",WS_CHILD|WS_VISIBLE| BS_AUTOCHECKBOX | BS_PUSHLIKE,110,70,80,20,hWnd,(HMENU)CMD_ENTER,hInst,NULL);
+	ENTER = CreateWindowExW(0, L"Button", L"Connect", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE, 110, 70, 80, 20, hWnd, (HMENU)CMD_ENTER, hInst, NULL);
 
 	SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"Press connect to enter the chat");
 
@@ -385,15 +387,8 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 		//}
 		//else {
 
-		HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION |
-			PROCESS_VM_READ,
-			FALSE, GetCurrentProcessId());
+		_snprintf_s(message, MSG_LEN, MSG_LEN, "%s%d\t%s", name, hPrev, editMsg);
 
-		srand(time(0));
-	
-			_snprintf_s(message, MSG_LEN, MSG_LEN, "%s%d\t%s", name, rand()%256, editMsg);
-
-	
 		//}
 
 		int sent = send(clientSocket, message, MSG_LEN + 1, 0);
@@ -413,7 +408,7 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 
 		int receveCnt = recv(clientSocket, message, MSG_LEN, 0);
 
-		SendMessageA(chatLog, LB_RESETCONTENT, 0, (LPARAM)NULL);
+		//SendMessageA(chatLog, LB_RESETCONTENT, 0, (LPARAM)NULL);
 		//SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
 
 
@@ -427,11 +422,11 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 
 
 			DeserializeMessages(message);
-			for (auto i = Messages->begin(); i != Messages->end(); i++) {
+			/*for (auto i = Messages->begin(); i != Messages->end(); i++) {
 
-				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)i->toClientString());
+				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)i->toDateString());
 
-			}
+			}*/
 
 		}
 		else {
@@ -452,45 +447,73 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 
 bool DeserializeMessages(char* str) {
 
+	DWORD resp = WaitForSingleObject(mutex, INFINITE);
 
-	if (str == NULL) {
-		return false;
-	}
+	if (resp == WAIT_OBJECT_0) {
+		if (str == NULL) {
+			return false;
+		}
 
-	size_t len = 0;
-	size_t r = 0;
+		size_t len = 0;
+		size_t r = 0;
 
-	char* start = str;
+		char* start = str;
 
-	Messages->clear();
+		//Messages->clear();
 
-	//delete Messages;
-	//Messages = new std::list<ChatMessage>;
+		std::list<ChatMessage>* NewMessages = new std::list<ChatMessage>;
 
 
-	//Messages->erase(Messages->begin(),Messages->end());
+		//Messages->erase(Messages->begin(),Messages->end());
 
-	while (str[len] != '\0') {
+		while (str[len] != '\0') {
 
-		if (str[len] == '\r') {
+			if (str[len] == '\r') {
 
-			r += 1;
-			str[len] = '\0';
-			ChatMessage n;
-			n.parseStringDT(start);
-			Messages->push_back(n);
-			start = str + len + 1;
+				r += 1;
+				str[len] = '\0';
+				ChatMessage n;
+				n.parseStringDT(start);
+				NewMessages->push_back(n);
+				start = str + len + 1;
+
+			}
+
+			len += 1;
 
 		}
 
-		len += 1;
 
+		ChatMessage n;
+		n.parseStringDT(start);
+		NewMessages->push_back(n);
+
+		bool messageFlag = false;
+
+
+		for (auto n = NewMessages->begin(); n != NewMessages->end(); n++) {
+
+			for (auto m = Messages->begin(); m != Messages->end(); m++) {
+
+				if (m->getId() == n->getId()) {
+
+					//SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)n->toDateString());
+					messageFlag = true;
+
+				}
+
+			}
+			if (!messageFlag) {
+
+				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)n->toDateString());
+			}
+			messageFlag = false;
+		}
+
+		delete Messages;
+		Messages = NewMessages;
 	}
-
-
-	ChatMessage n;
-	n.parseStringDT(start);
-	Messages->push_back(n);
+	ReleaseMutex(mutex);
 
 	return true;
 
@@ -595,7 +618,7 @@ DWORD CALLBACK SyncChatMessage(LPVOID params) {
 
 		if (sent == SOCKET_ERROR) {
 
-			_snwprintf_s(str, MAX_LEN, L"Sending error: %d %s", WSAGetLastError());
+			_snwprintf_s(str, MAX_LEN, L"Sending error: %d", WSAGetLastError());
 			closesocket(clientSocket);
 			WSACleanup();
 			clientSocket = INVALID_SOCKET;
@@ -611,20 +634,19 @@ DWORD CALLBACK SyncChatMessage(LPVOID params) {
 			sameName = true;
 
 		}
-		SendMessageA(chatLog, LB_RESETCONTENT, 0, (LPARAM)NULL);
+		//SendMessageA(chatLog, LB_RESETCONTENT, 0, (LPARAM)NULL);
 
 		if (receveCnt > 0) {
 
-			ChatMessage MSG;
 
 
 			DeserializeMessages(message);
 
-			for (auto i = Messages->begin(); i != Messages->end(); i++) {
+			/*for (auto i = Messages->begin(); i != Messages->end(); i++) {
 
-				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)i->toClientString());
+				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)i->toDateString());
 
-			}
+			}*/
 
 		}
 		SendMessageW(chatLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
