@@ -32,10 +32,11 @@ HWND editMessage;
 HANDLE mutex = NULL;
 
 
+
 const size_t MSG_LEN = 4096;
 char message[MSG_LEN];
 
-int sameName;
+bool sameName = false;
 
 bool ddosFlag = false;
 bool connected = false;
@@ -384,8 +385,15 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 		//}
 		//else {
 
-		_snprintf_s(message, MSG_LEN, MSG_LEN, "%s%d\t%s", name,hPrev, editMsg);
+		HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION |
+			PROCESS_VM_READ,
+			FALSE, GetCurrentProcessId());
 
+		srand(time(0));
+	
+			_snprintf_s(message, MSG_LEN, MSG_LEN, "%s%d\t%s", name, rand()%256, editMsg);
+
+	
 		//}
 
 		int sent = send(clientSocket, message, MSG_LEN + 1, 0);
@@ -598,6 +606,11 @@ DWORD CALLBACK SyncChatMessage(LPVOID params) {
 
 		int receveCnt = recv(clientSocket, message, MSG_LEN, 0);
 
+		if (strlen(message)) {
+
+			sameName = true;
+
+		}
 		SendMessageA(chatLog, LB_RESETCONTENT, 0, (LPARAM)NULL);
 
 		if (receveCnt > 0) {
