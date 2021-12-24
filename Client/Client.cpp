@@ -28,6 +28,7 @@ HWND hIP;
 HWND DDOS;
 HWND ENTER;
 HWND hName;
+HWND hLogin;
 HWND grpEndPoint;
 HWND editMessage;
 
@@ -38,12 +39,13 @@ HANDLE mutex = NULL;
 const size_t MSG_LEN = 4096*2;
 char message[MSG_LEN];
 
-bool sameName = false;
+bool authorized = false;
 
 bool ddosFlag = false;
 bool connected = false;
 
 std::list<ChatMessage>* Messages = new std::list<ChatMessage>;
+
 
 HINSTANCE hPrev;
 
@@ -51,6 +53,7 @@ LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 DWORD CALLBACK CreateUI(LPVOID);
 DWORD CALLBACK SendChatMessage(LPVOID);
 DWORD CALLBACK SyncChatMessage(LPVOID);
+DWORD CALLBACK JoinChatMessage(LPVOID);
 bool DeserializeMessages(char*);
 
 
@@ -138,37 +141,48 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 		case CMD_ENTER:
 
-			if (SyncChatMessage(&hWnd) == 0) {
+			if (!authorized) {
+				JoinChatMessage(&hWnd);
 
-				SetTimer(hWnd, CMD_SYNC, 1000, NULL);
-
-			}
-			else {
-
-				MessageBoxA(hWnd, "Sync error unable to connect to server", "Sync error", MB_OK | MB_ICONERROR);
-				//PostQuitMessage(0);
-				//return 0;
-			}
-			connected ? connected = false : connected = true;
-
-			EnableWindow(DDOS, connected);
-			EnableWindow(sendMessage, connected);
-
-			if (connected) {
-
-				SendMessageA(ENTER, WM_SETTEXT, 0, (LPARAM)"Disconnect");
-
-			}
-			else {
-				SendMessageA(ENTER, WM_SETTEXT, 0, (LPARAM)"Connect");
-				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"Sync disabled");
-
-				KillTimer(hWnd, CMD_SYNC);
 
 			}
 
+			if (authorized) {
+
+				if (SyncChatMessage(&hWnd) == 0) {
+
+					SetTimer(hWnd, CMD_SYNC, 1000, NULL);
+					EnableWindow(hName, !authorized);
+				}
+				else {
+
+					MessageBoxA(hWnd, "Sync error unable to connect to server", "Sync error", MB_OK | MB_ICONERROR);
+					//PostQuitMessage(0);
+					//return 0;
+				}
+				connected ? connected = false : connected = true;
+
+				EnableWindow(DDOS, connected);
+				EnableWindow(sendMessage, connected);
+
+
+				if (connected) {
+
+					SendMessageA(ENTER, WM_SETTEXT, 0, (LPARAM)"Disconnect");
+
+				}
+				else {
+					SendMessageA(ENTER, WM_SETTEXT, 0, (LPARAM)"Connect");
+					SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"Sync disabled");
+
+					KillTimer(hWnd, CMD_SYNC);
+
+				}
+
+			}
 			break;
 		}
+		
 
 		break;
 	}
@@ -266,6 +280,7 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 	editMessage = CreateWindowExW(0, L"Edit", L"", WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 100, 180, 50, hWnd, NULL, hInst, NULL);
 
 	hName = CreateWindowExW(0, L"Edit", L"Danya", WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 160, 180, 23, hWnd, NULL, hInst, NULL);
+	
 
 	ENTER = CreateWindowExW(0, L"Button", L"Connect", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE, 110, 70, 80, 20, hWnd, (HMENU)CMD_ENTER, hInst, NULL);
 
@@ -614,7 +629,12 @@ DWORD CALLBACK SyncChatMessage(LPVOID params) {
 		}
 
 
-		int sent = send(clientSocket, "\0", 2, 0);
+
+		
+
+			int sent = send(clientSocket, "\0", 2, 0);
+		
+		
 
 		if (sent == SOCKET_ERROR) {
 
@@ -629,18 +649,14 @@ DWORD CALLBACK SyncChatMessage(LPVOID params) {
 
 		int receveCnt = recv(clientSocket, message, MSG_LEN, 0);
 
-		if (strlen(message)) {
-
-			sameName = true;
-
-		}
 		//SendMessageA(chatLog, LB_RESETCONTENT, 0, (LPARAM)NULL);
 
 		if (receveCnt > 0) {
 
+		
 
-
-			DeserializeMessages(message);
+				DeserializeMessages(message);
+			
 
 			/*for (auto i = Messages->begin(); i != Messages->end(); i++) {
 
@@ -663,6 +679,176 @@ DWORD CALLBACK SyncChatMessage(LPVOID params) {
 	ReleaseMutex(mutex);
 
 	return 0;
+
+
+
+
+}
+
+
+DWORD CALLBACK JoinChatMessage(LPVOID params) {
+
+	HWND hWnd = *((HWND*)params);
+
+
+
+	DWORD resp = WaitForSingleObject(mutex, INFINITE);
+
+	if (resp == WAIT_OBJECT_0) {
+
+		SOCKET clientSocket;
+
+		const size_t MAX_LEN = 100;
+		WCHAR str[MAX_LEN];
+
+
+		WSADATA wsaData;
+		int err;
+
+		//WinSock API initializing ( ~wsaData = new WSA(2.2) )
+		err = WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+		if (err) {
+
+			_snwprintf_s(str, MAX_LEN, L"Startup error: %d", err);
+			SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)str);
+			return -10;
+		}
+
+		clientSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+		//Socket preparing
+		if (clientSocket == INVALID_SOCKET) {
+
+			_snwprintf_s(str, MAX_LEN, L"Socket error: %d", WSAGetLastError());
+			WSACleanup();
+			SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)str);
+			return -20;
+
+		}
+		//----Socket configuration------
+		SOCKADDR_IN addr; //Config structure
+
+		addr.sin_family = AF_INET; // 1.Network type (family)
+
+		char ip[20];
+		LRESULT ipLen = SendMessageA(hIP, WM_GETTEXT, 29, (LPARAM)ip);
+		ip[ipLen] = '\0';
+
+		inet_pton(AF_INET, ip, &addr.sin_addr); //2.IP
+
+
+		char port[8];
+		LRESULT portLen = SendMessageA(hPort, WM_GETTEXT, 7, (LPARAM)port);
+		port[portLen] = '\0';
+
+		addr.sin_port = htons(atoi(port)); //3.Port
+		//----end configuration------
+
+		//Connect to server
+		err = connect(clientSocket, (SOCKADDR*)&addr, sizeof(addr));
+
+		if (err == SOCKET_ERROR) {
+
+			int lastError = WSAGetLastError();
+
+			if (lastError == 10048) {
+
+				_snwprintf_s(str, MAX_LEN, L"Socket connect error: %d %s", lastError, L"Address already in use");
+			}
+			else if (lastError == 10049) {
+
+				_snwprintf_s(str, MAX_LEN, L"Socket connect error: %d %s", lastError, L"Cannot assign requested address");
+			}
+			else if (lastError == 10050) {
+
+				_snwprintf_s(str, MAX_LEN, L"Socket connect error: %d %s", lastError, L"Network is down");
+			}
+			else if (lastError == 10051) {
+
+				_snwprintf_s(str, MAX_LEN, L"Socket connect error: %d %s", lastError, L"Network is unreachable");
+			}
+			else {
+
+				_snwprintf_s(str, MAX_LEN, L"Socket connect error: %d", lastError);
+			}
+
+			closesocket(clientSocket);
+			WSACleanup();
+			SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)str);
+			return -30;
+
+		}
+
+
+		
+
+			char name[30];
+
+			name[0] = '\b';
+
+			int nicklen = SendMessageA(hName, WM_GETTEXT, 28, (LPARAM)(name + 1));
+
+			name[nicklen + 1] = '\0';
+
+			int sent = send(clientSocket, name, nicklen + 2, 0);
+
+		
+
+		if (sent == SOCKET_ERROR) {
+
+			_snwprintf_s(str, MAX_LEN, L"Sending error: %d", WSAGetLastError());
+			closesocket(clientSocket);
+			WSACleanup();
+			clientSocket = INVALID_SOCKET;
+			SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)str);
+			return -40;
+		}
+
+
+		int receveCnt = recv(clientSocket, message, MSG_LEN, 0);
+
+		//SendMessageA(chatLog, LB_RESETCONTENT, 0, (LPARAM)NULL);
+
+		if (receveCnt > 0) {
+
+			if (!authorized && message[0] == '2' && message[1] == '0' && message[2] == '1') {
+				authorized = true;
+				SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)"authorized");
+				
+
+			}
+			else if (!authorized && message[0] == '4' && message[1] == '0' && message[2] == '1' ) {
+
+				authorized = false;
+				SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)"retry authorization or change your name");
+			}
+			
+
+			/*for (auto i = Messages->begin(); i != Messages->end(); i++) {
+
+				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)i->toDateString());
+
+			}*/
+
+		}
+		SendMessageW(chatLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
+
+		shutdown(clientSocket, SD_BOTH);
+		closesocket(clientSocket);
+		WSACleanup();
+
+
+
+
+	}
+
+	ReleaseMutex(mutex);
+
+	return 0;
+
+
+
 
 
 

@@ -36,6 +36,9 @@ SOCKET listenSocket;
 
 std::list <ChatMessage>Messages;
 
+std::list<char*> users;
+
+
 LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 DWORD CALLBACK CreateUI(LPVOID);
 DWORD CALLBACK StartServer(LPVOID);
@@ -359,63 +362,154 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 				ChatMessage MSG;
 
+				int authorization = 0;
+				int userExists = 0;
 
 
+				
+				if (data[0] == '\b') {
 
-				if (*data == '\0') {
+					if (users.size() == 0) {
 
-					if (Messages.size() > 0) {
-						MSG.setId(mid++);
-						const char* mst = MSG.fromListToString(Messages);
-
-						send(acceptSocket, mst, strlen(mst) + 1, 0);
-
-					}
-
-				}
-				else
-				{
-
-
-
-					if (MSG.parseString(data)) {
-						MSG.setId(mid++);
-						Messages.push_back(MSG);
-
-						if (Messages.size() > MAX_MESSAGES) {
-
-							Messages.pop_front();
-
-						}
-
-						const size_t MAX_LOGDATA = 543;
-						char logData[MAX_LOGDATA];
-
-
-						//send message to log
-
-						SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
-						SendMessageA(serverLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
-
-						//send answer to client - write in socket
-
-
-
-						const char* mst = MSG.fromListToString(Messages);
-
-						send(acceptSocket, mst, strlen(mst) + 1, 0);
-						//delete[]mst;
-
+						users.push_back(data);
+						send(acceptSocket, "201", 4, 0);
 					}
 					else {
 
+						for (auto i = users.begin(); i != users.end(); i++) {
 
-						SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
-						send(acceptSocket, "500", 4, 0);
+							if (strlen(*i)==strlen(data)) {
+
+								for (int j = 0; j < strlen(data); j++) {
+
+									if ((*i)[j] == data[j]) {
+
+										userExists++;
+
+									}
+
+
+								}
+								if (userExists == strlen(data)) {
+
+									authorization++;
+
+								}
+								userExists = 0;
+
+							}
+
+
+						}
+
+						if (authorization == 0) {
+
+							users.push_back(data);
+							send(acceptSocket, "201", 4, 0);
+
+
+						}
+						else {
+
+							send(acceptSocket, "401", 4, 0);
+
+						}
+						authorization = 0;
+
+
+						//for (auto i = users.begin(); i != users.end(); i++) {
+						//	
+						//	if (strlen(*i) == strlen(data)) {
+
+
+						//		for (int j = 0; j < strlen(data); i++) {
+						//			
+						//			if ((*i)[j] == data[j]) {
+						//				userExists++;
+						//			}
+
+						//		}
+						//			
+						//	}
+						//	if (userExists == strlen(*i)) {
+						//		users.push_back(data);
+						//		send(acceptSocket, "401", 4, 0);
+						//	}
+						//	else {
+						//		send(acceptSocket, "201", 4, 0);
+
+						//	}
+						//	userExists = 0;
+						//	
+						//	
+
+						//	
+
+						//}
+
+
 					}
 
 				}
+			
+				else {
 
+
+
+					if (strlen(data) == 0) {
+
+						if (Messages.size() > 0) {
+							MSG.setId(mid++);
+							const char* mst = MSG.fromListToString(Messages);
+
+							send(acceptSocket, mst, strlen(mst) + 1, 0);
+
+						}
+
+					}
+					else
+					{
+
+
+
+						if (MSG.parseString(data)) {
+							MSG.setId(mid++);
+							Messages.push_back(MSG);
+
+							if (Messages.size() > MAX_MESSAGES) {
+
+								Messages.pop_front();
+
+							}
+
+							const size_t MAX_LOGDATA = 543;
+							char logData[MAX_LOGDATA];
+
+
+							//send message to log
+
+							SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
+							SendMessageA(serverLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
+
+							//send answer to client - write in socket
+
+
+
+							const char* mst = MSG.fromListToString(Messages);
+
+							send(acceptSocket, mst, strlen(mst) + 1, 0);
+							//delete[]mst;
+
+						}
+						else {
+
+
+							SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
+							send(acceptSocket, "500", 4, 0);
+						}
+
+					}
+				}
 				shutdown(acceptSocket, SD_BOTH);
 				closesocket(acceptSocket);
 
