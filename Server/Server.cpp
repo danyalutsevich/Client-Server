@@ -36,8 +36,7 @@ SOCKET listenSocket;
 
 std::list <ChatMessage>Messages;
 
-std::list<char*> users;
-
+std::list<const char*> users;
 
 LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
 DWORD CALLBACK CreateUI(LPVOID);
@@ -320,6 +319,8 @@ DWORD CALLBACK StartServer(LPVOID params) {
 			char data[DATA_LEN]; // big buffer for all transfered chunks
 			int receivedCnt; //chunck size
 
+			users.push_back("\bDanya");
+
 
 			while (true) {
 				// wait for network activity
@@ -404,7 +405,17 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 						if (authorization == 0) {
 
-							users.push_back(data);
+							char* dataCopy = new char[strlen(data) + 1]; 
+
+							for (int i = 0; i < strlen(data); i++) {
+
+								dataCopy[i] = data[i];
+								dataCopy[i + 1] = '\0';
+							}
+							users.push_back(dataCopy);
+							//this was made because data deletes every iteration
+							//and I need to store a copy 
+
 							send(acceptSocket, "201", 4, 0);
 
 

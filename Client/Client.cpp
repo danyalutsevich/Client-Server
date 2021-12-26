@@ -814,14 +814,14 @@ DWORD CALLBACK JoinChatMessage(LPVOID params) {
 
 			if (!authorized && message[0] == '2' && message[1] == '0' && message[2] == '1') {
 				authorized = true;
-				SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)"authorized");
+				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"authorized");
 				
 
 			}
-			else if (!authorized && message[0] == '4' && message[1] == '0' && message[2] == '1' ) {
+			if (!authorized && message[0] == '4' && message[1] == '0' && message[2] == '1' ) {
 
 				authorized = false;
-				SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)"retry authorization or change your name");
+				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"user with this name already exists");
 			}
 			
 
