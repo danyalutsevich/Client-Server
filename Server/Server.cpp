@@ -34,7 +34,7 @@ HWND stopServer;
 
 SOCKET listenSocket;
 
-std::list <ChatMessage>Messages;
+std::list <ChatMessage>*Messages = new std::list <ChatMessage>;
 
 std::list<const char*> users;
 
@@ -396,6 +396,25 @@ DWORD CALLBACK StartServer(LPVOID params) {
 				send(acceptSocket, "201", 4, 0);
 
 			}
+			//delete message
+			else if (data[0] == '\f') {
+
+				int deleteId = atoi(data + 1);
+				std::list <ChatMessage>* NewMessages = new std::list <ChatMessage>;
+				for (auto i = Messages->begin(); i != Messages->end(); i++) {
+
+					if (i->getId() != deleteId) {
+
+						NewMessages->push_back(*i);
+						
+					}
+
+				}
+				delete Messages;
+				Messages = NewMessages;
+
+
+			}
 			//registration
 			else if (data[0] == '\b') {
 
@@ -448,9 +467,9 @@ DWORD CALLBACK StartServer(LPVOID params) {
 			//sync
 			else if (strlen(data) == 0) {
 
-				if (Messages.size() > 0) {
+				if (Messages->size() > 0) {
 
-					const char* mst = MSG.fromListToString(Messages);
+					const char* mst = MSG.fromListToString(*Messages);
 
 					send(acceptSocket, mst, strlen(mst) + 1, 0);
 
@@ -489,11 +508,11 @@ DWORD CALLBACK StartServer(LPVOID params) {
 					if (isRegistered) {
 
 						MSG.setId(mid++);
-						Messages.push_back(MSG);
+						Messages->push_back(MSG);
 
-						if (Messages.size() > MAX_MESSAGES) {
+						if (Messages->size() > MAX_MESSAGES) {
 
-							Messages.pop_front();
+							Messages->pop_front();
 
 						}
 
@@ -506,7 +525,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 
 						//send answer to client - write in socket
-						const char* mst = MSG.fromListToString(Messages);
+						const char* mst = MSG.fromListToString(*Messages);
 
 						send(acceptSocket, mst, strlen(mst) + 1, 0);
 
