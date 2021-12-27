@@ -69,7 +69,7 @@ private:
 
 public:
 
-	ChatMessage() :name{ NULL }, message{ NULL }, dt{ time(NULL) }, _str{ NULL }, id{0}{
+	ChatMessage() :name{ NULL }, message{ NULL }, dt{ time(NULL) }, _str{ NULL }, id{ 0 }{
 
 	}
 	ChatMessage(char* name, char* message) :ChatMessage() {
@@ -141,7 +141,7 @@ public:
 		setName(userData[0].c_str());
 		setMessage(userData[1].c_str());
 		dt = time(0);
-		
+
 		return userData;
 	}
 
@@ -185,9 +185,9 @@ public:
 			delete[] _str;
 
 		}
-		_str = new char[text_len + 1 + name_len + 1+64];
+		_str = new char[text_len + 1 + name_len + 1 + 64];
 
-		sprintf(_str, "%s\t%s\t%lld", getName(), getMessage(),getId());
+		sprintf(_str, "%s\t%s\t%lld", getName(), getMessage(), getId());
 
 		return _str;
 
@@ -258,10 +258,10 @@ public:
 
 		if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday == now->tm_mday) {
 
-			sprintf(_str, "Today at %.2d:%.2d:%.2d %s:%s %lld", t->tm_hour, t->tm_min,t->tm_sec, getName(), getMessage(),getId());
+			sprintf(_str, "Today at %.2d:%.2d:%.2d %s:%s %lld", t->tm_hour, t->tm_min, t->tm_sec, getName(), getMessage(), getId());
 
 		}
-		else if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday+1 == now->tm_mday) {
+		else if (t->tm_year == now->tm_year && t->tm_mon == now->tm_mon && t->tm_mday + 1 == now->tm_mday) {
 
 			sprintf(_str, "Yesterday at %.2d:%.2d %s:%s", t->tm_hour, t->tm_min, getName(), getMessage());
 
@@ -273,7 +273,7 @@ public:
 		}
 		else {
 
-			sprintf(_str, "%.2d:%.2d:%d at %.2d:%.2d %s:%s", t->tm_mday,t->tm_mon,t->tm_year, t->tm_hour, t->tm_min, getName(), getMessage());
+			sprintf(_str, "%.2d:%.2d:%d at %.2d:%.2d %s:%s", t->tm_mday, t->tm_mon, t->tm_year, t->tm_hour, t->tm_min, getName(), getMessage());
 
 		}
 		delete t;
@@ -283,15 +283,15 @@ public:
 	}
 
 	const char* fromListToString(std::list<ChatMessage> list) {
-		
-		std::string *str = new std::string;
-		char* DTstring=new char[1000];
 
-		
+		std::string* str = new std::string;
+		char* DTstring = new char[1000];
+
+
 
 		if (list.size() == 1) {
 
-			sprintf(DTstring, "%s\t%s\t%d\t%lld", list.begin()->getName(), list.begin()->getMessage(), list.begin()->dt,list.begin()->getId());
+			sprintf(DTstring, "%s\t%s\t%d\t%lld", list.begin()->getName(), list.begin()->getMessage(), list.begin()->dt, list.begin()->getId());
 			*str = DTstring;
 			return str->c_str();
 
@@ -314,13 +314,13 @@ public:
 
 		}
 
-		
+
 
 		return str->c_str();
 
 	}
 
 
-	
+
 
 };

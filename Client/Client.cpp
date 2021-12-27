@@ -36,7 +36,7 @@ HANDLE mutex = NULL;
 
 
 
-const size_t MSG_LEN = 4096*2;
+const size_t MSG_LEN = 4096 * 2;
 char message[MSG_LEN];
 
 bool authorized = false;
@@ -182,7 +182,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			}
 			break;
 		}
-		
+
 
 		break;
 	}
@@ -280,7 +280,7 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 	editMessage = CreateWindowExW(0, L"Edit", L"", WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 100, 180, 50, hWnd, NULL, hInst, NULL);
 
 	hName = CreateWindowExW(0, L"Edit", L"Danya", WS_CHILD | WS_VISIBLE | WS_BORDER, 10, 160, 180, 23, hWnd, NULL, hInst, NULL);
-	
+
 
 	ENTER = CreateWindowExW(0, L"Button", L"Connect", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE, 110, 70, 80, 20, hWnd, (HMENU)CMD_ENTER, hInst, NULL);
 
@@ -630,11 +630,11 @@ DWORD CALLBACK SyncChatMessage(LPVOID params) {
 
 
 
-		
 
-			int sent = send(clientSocket, "\0", 2, 0);
-		
-		
+
+		int sent = send(clientSocket, "\0", 2, 0);
+
+
 
 		if (sent == SOCKET_ERROR) {
 
@@ -653,10 +653,10 @@ DWORD CALLBACK SyncChatMessage(LPVOID params) {
 
 		if (receveCnt > 0) {
 
-		
 
-				DeserializeMessages(message);
-			
+
+			DeserializeMessages(message);
+
 
 			/*for (auto i = Messages->begin(); i != Messages->end(); i++) {
 
@@ -781,19 +781,19 @@ DWORD CALLBACK JoinChatMessage(LPVOID params) {
 		}
 
 
-		
 
-			char name[30];
 
-			name[0] = '\b';
+		char name[30];
 
-			int nicklen = SendMessageA(hName, WM_GETTEXT, 28, (LPARAM)(name + 1));
+		name[0] = '\b';
 
-			name[nicklen + 1] = '\0';
+		int nicklen = SendMessageA(hName, WM_GETTEXT, 28, (LPARAM)(name + 1));
 
-			int sent = send(clientSocket, name, nicklen + 2, 0);
+		name[nicklen + 1] = '\0';
 
-		
+		int sent = send(clientSocket, name, nicklen + 2, 0);
+
+
 
 		if (sent == SOCKET_ERROR) {
 
@@ -815,15 +815,15 @@ DWORD CALLBACK JoinChatMessage(LPVOID params) {
 			if (!authorized && message[0] == '2' && message[1] == '0' && message[2] == '1') {
 				authorized = true;
 				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"authorized");
-				
+
 
 			}
-			if (!authorized && message[0] == '4' && message[1] == '0' && message[2] == '1' ) {
+			if (!authorized && message[0] == '4' && message[1] == '0' && message[2] == '1') {
 
 				authorized = false;
 				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"user with this name already exists");
 			}
-			
+
 
 			/*for (auto i = Messages->begin(); i != Messages->end(); i++) {
 

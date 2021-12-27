@@ -203,299 +203,299 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 
 
-		DWORD resp = WaitForSingleObject(mutex, INFINITE);
+	DWORD resp = WaitForSingleObject(mutex, INFINITE);
 
-		if (resp == WAIT_OBJECT_0) {
+	if (resp == WAIT_OBJECT_0) {
 
 
-			const size_t MAX_LEN = 100;
-			WCHAR str[MAX_LEN];
+		const size_t MAX_LEN = 100;
+		WCHAR str[MAX_LEN];
 
 
-			WSADATA wsaData;
-			int err;
+		WSADATA wsaData;
+		int err;
 
-			//WinSock API initializing ( ~wsaData = new WSA(2.2) )
-			err = WSAStartup(MAKEWORD(2, 2), &wsaData);
+		//WinSock API initializing ( ~wsaData = new WSA(2.2) )
+		err = WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-			if (err) {
+		if (err) {
 
-				_snwprintf_s(str, MAX_LEN, L"Startup error: %d", err);
-				SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
-				return -10;
-			}
+			_snwprintf_s(str, MAX_LEN, L"Startup error: %d", err);
+			SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
+			return -10;
+		}
 
-			listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-			//Socket preparing
-			if (listenSocket == INVALID_SOCKET) {
+		//Socket preparing
+		if (listenSocket == INVALID_SOCKET) {
 
-				_snwprintf_s(str, MAX_LEN, L"Socket error: %d", WSAGetLastError());
-				WSACleanup();
-				SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
-				return -20;
-
-			}
-			//----Socket configuration------
-			SOCKADDR_IN addr; //Config structure
-
-			addr.sin_family = AF_INET; // 1.Network type (family)
-
-			char ip[20];
-			LRESULT ipLen = SendMessageA(hIP, WM_GETTEXT, 29, (LPARAM)ip);
-			ip[ipLen] = '\0';
-
-			inet_pton(AF_INET, ip, &addr.sin_addr); //2.IP
-
-
-			char port[8];
-			LRESULT portLen = SendMessageA(hPort, WM_GETTEXT, 7, (LPARAM)port);
-			port[portLen] = '\0';
-
-			addr.sin_port = htons(atoi(port)); //3.Port
-			//----end configuration------
-
-			//Socket binding - config [addr] applying to socket
-			err = bind(listenSocket, (SOCKADDR*)&addr, sizeof(addr));
-
-			if (err == SOCKET_ERROR) {
-
-				int lastError = WSAGetLastError();
-
-				if (lastError == 10048) {
-
-					_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Address already in use");
-				}
-				else if (lastError == 10049) {
-
-					_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Cannot assign requested address");
-				}
-				else if (lastError == 10050) {
-
-					_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Network is down");
-				}
-				else if (lastError == 10051) {
-
-					_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Network is unreachable");
-				}
-				else {
-
-					_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d", lastError);
-				}
-
-				closesocket(listenSocket);
-				WSACleanup();
-				SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
-				return -30;
-
-			}
-
-			//Start of listening - from this point Socket recives data form OS
-			err = listen(listenSocket, SOMAXCONN);
-
-
-			if (err == SOCKET_ERROR) {
-
-				_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d", WSAGetLastError());
-				closesocket(listenSocket);
-				WSACleanup();
-				SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
-				return -40;
-
-			}
-			//Log start message
-			char strartMsg[MAX_LEN];
-			_snprintf_s(strartMsg, MAX_LEN, MAX_LEN, "Server starts IP: %s Port: %s", ip, port);
-			SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)strartMsg);
-			EnableWindow(stopServer, TRUE);
-			EnableWindow(startServer, FALSE);
-
-			//listening loop
-			SOCKET acceptSocket; //second socket - for communication
-
-			const size_t BUFF_LEN = 8;
-			const size_t DATA_LEN = 2048;
-			char buff[BUFF_LEN + 1];
-			char data[DATA_LEN]; // big buffer for all transfered chunks
-			int receivedCnt; //chunck size
-
-
-
-			while (true) {
-				// wait for network activity
-				acceptSocket = accept(listenSocket, NULL, NULL);
-				if (acceptSocket == INVALID_SOCKET) {
-
-					_snwprintf_s(str, MAX_LEN, L"Accept socket error: %d", WSAGetLastError());
-					SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
-					closesocket(acceptSocket);
-					return -60;
-				}
-				//communication begins
-				data[0] = '\0';
-				do {
-
-					receivedCnt = recv(acceptSocket, buff, BUFF_LEN, 0);
-
-					if (receivedCnt == 0) { // 0 - connection closed by client
-
-						closesocket(acceptSocket);
-						SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)"Connection closed");
-						break;
-					}
-
-					if (receivedCnt < 0) { //receiving error
-
-						closesocket(acceptSocket);
-						_snwprintf_s(str, MAX_LEN, L"Communication socket error: %d", WSAGetLastError());
-						SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
-						break;
-
-					}
-
-					buff[receivedCnt] = '\0';
-					strcat_s(data, buff); //data+= chunk (buff)
-
-				} while (strlen(buff) == BUFF_LEN); // '\0' - end of data
-
-				//data is sum of chuncks
-
-				ChatMessage MSG;
-
-				int authorization = 0;
-				int userExists = 0;
-
-
-				
-				if (data[0] == '\b') {
-
-					
-
-						for (auto i = users.begin(); i != users.end(); i++) {
-
-							if (strlen(*i)==strlen(data)) {
-
-								for (int j = 0; j < strlen(data); j++) {
-
-									if ((*i)[j] == data[j]) {
-
-										userExists++;
-
-									}
-
-
-								}
-								if (userExists == strlen(data)) {
-
-									authorization++;
-
-								}
-								userExists = 0;
-
-							}
-
-
-						}
-
-						if (authorization == 0) {
-
-							char* dataCopy = new char[strlen(data) + 1]; 
-
-							for (int i = 0; i < strlen(data); i++) {
-
-								dataCopy[i] = data[i];
-								dataCopy[i + 1] = '\0';
-							}
-							users.push_back(dataCopy);
-							//this was made because data deletes every iteration
-							//and I need to store a copy 
-
-							send(acceptSocket, "201", 4, 0);
-
-
-						}
-						else {
-
-							send(acceptSocket, "401", 4, 0);
-
-						}
-						authorization = 0;
-
-
-						
-
-
-					
-
-				}
-			
-				else {
-
-
-
-					if (strlen(data) == 0) {
-
-						if (Messages.size() > 0) {
-							MSG.setId(mid++);
-							const char* mst = MSG.fromListToString(Messages);
-
-							send(acceptSocket, mst, strlen(mst) + 1, 0);
-
-						}
-
-					}
-					else
-					{
-
-
-
-						if (MSG.parseString(data)) {
-							MSG.setId(mid++);
-							Messages.push_back(MSG);
-
-							if (Messages.size() > MAX_MESSAGES) {
-
-								Messages.pop_front();
-
-							}
-
-							const size_t MAX_LOGDATA = 543;
-							char logData[MAX_LOGDATA];
-
-
-							//send message to log
-
-							SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
-							SendMessageA(serverLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
-
-							//send answer to client - write in socket
-
-
-
-							const char* mst = MSG.fromListToString(Messages);
-
-							send(acceptSocket, mst, strlen(mst) + 1, 0);
-							//delete[]mst;
-
-						}
-						else {
-
-
-							SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
-							send(acceptSocket, "500", 4, 0);
-						}
-
-					}
-				}
-				shutdown(acceptSocket, SD_BOTH);
-				closesocket(acceptSocket);
-
-			}
-
+			_snwprintf_s(str, MAX_LEN, L"Socket error: %d", WSAGetLastError());
+			WSACleanup();
+			SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
+			return -20;
 
 		}
-		ReleaseMutex(mutex);
-	
+		//----Socket configuration------
+		SOCKADDR_IN addr; //Config structure
+
+		addr.sin_family = AF_INET; // 1.Network type (family)
+
+		char ip[20];
+		LRESULT ipLen = SendMessageA(hIP, WM_GETTEXT, 29, (LPARAM)ip);
+		ip[ipLen] = '\0';
+
+		inet_pton(AF_INET, ip, &addr.sin_addr); //2.IP
+
+
+		char port[8];
+		LRESULT portLen = SendMessageA(hPort, WM_GETTEXT, 7, (LPARAM)port);
+		port[portLen] = '\0';
+
+		addr.sin_port = htons(atoi(port)); //3.Port
+		//----end configuration------
+
+		//Socket binding - config [addr] applying to socket
+		err = bind(listenSocket, (SOCKADDR*)&addr, sizeof(addr));
+
+		if (err == SOCKET_ERROR) {
+
+			int lastError = WSAGetLastError();
+
+			if (lastError == 10048) {
+
+				_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Address already in use");
+			}
+			else if (lastError == 10049) {
+
+				_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Cannot assign requested address");
+			}
+			else if (lastError == 10050) {
+
+				_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Network is down");
+			}
+			else if (lastError == 10051) {
+
+				_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d %s", lastError, L"Network is unreachable");
+			}
+			else {
+
+				_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d", lastError);
+			}
+
+			closesocket(listenSocket);
+			WSACleanup();
+			SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
+			return -30;
+
+		}
+
+		//Start of listening - from this point Socket recives data form OS
+		err = listen(listenSocket, SOMAXCONN);
+
+
+		if (err == SOCKET_ERROR) {
+
+			_snwprintf_s(str, MAX_LEN, L"Socket bind error: %d", WSAGetLastError());
+			closesocket(listenSocket);
+			WSACleanup();
+			SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
+			return -40;
+
+		}
+		//Log start message
+		char strartMsg[MAX_LEN];
+		_snprintf_s(strartMsg, MAX_LEN, MAX_LEN, "Server starts IP: %s Port: %s", ip, port);
+		SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)strartMsg);
+		EnableWindow(stopServer, TRUE);
+		EnableWindow(startServer, FALSE);
+
+		//listening loop
+		SOCKET acceptSocket; //second socket - for communication
+
+		const size_t BUFF_LEN = 8;
+		const size_t DATA_LEN = 2048;
+		char buff[BUFF_LEN + 1];
+		char data[DATA_LEN]; // big buffer for all transfered chunks
+		int receivedCnt; //chunck size
+
+
+
+		while (true) {
+			// wait for network activity
+			acceptSocket = accept(listenSocket, NULL, NULL);
+			if (acceptSocket == INVALID_SOCKET) {
+
+				_snwprintf_s(str, MAX_LEN, L"Accept socket error: %d", WSAGetLastError());
+				SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
+				closesocket(acceptSocket);
+				return -60;
+			}
+			//communication begins
+			data[0] = '\0';
+			do {
+
+				receivedCnt = recv(acceptSocket, buff, BUFF_LEN, 0);
+
+				if (receivedCnt == 0) { // 0 - connection closed by client
+
+					closesocket(acceptSocket);
+					SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)"Connection closed");
+					break;
+				}
+
+				if (receivedCnt < 0) { //receiving error
+
+					closesocket(acceptSocket);
+					_snwprintf_s(str, MAX_LEN, L"Communication socket error: %d", WSAGetLastError());
+					SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)str);
+					break;
+
+				}
+
+				buff[receivedCnt] = '\0';
+				strcat_s(data, buff); //data+= chunk (buff)
+
+			} while (strlen(buff) == BUFF_LEN); // '\0' - end of data
+
+			//data is sum of chuncks
+
+			ChatMessage MSG;
+
+			int authorization = 0;
+			int userExists = 0;
+
+
+
+			if (data[0] == '\b') {
+
+
+
+				for (auto i = users.begin(); i != users.end(); i++) {
+
+					if (strlen(*i) == strlen(data)) {
+
+						for (int j = 0; j < strlen(data); j++) {
+
+							if ((*i)[j] == data[j]) {
+
+								userExists++;
+
+							}
+
+
+						}
+						if (userExists == strlen(data)) {
+
+							authorization++;
+
+						}
+						userExists = 0;
+
+					}
+
+
+				}
+
+				if (authorization == 0) {
+
+					char* dataCopy = new char[strlen(data) + 1];
+
+					for (int i = 0; i < strlen(data); i++) {
+
+						dataCopy[i] = data[i];
+						dataCopy[i + 1] = '\0';
+					}
+					users.push_back(dataCopy);
+					//this was made because data deletes every iteration
+					//and I need to store a copy 
+
+					send(acceptSocket, "201", 4, 0);
+
+
+				}
+				else {
+
+					send(acceptSocket, "401", 4, 0);
+
+				}
+				authorization = 0;
+
+
+
+
+
+
+
+			}
+
+			else {
+
+
+
+				if (strlen(data) == 0) {
+
+					if (Messages.size() > 0) {
+						MSG.setId(mid++);
+						const char* mst = MSG.fromListToString(Messages);
+
+						send(acceptSocket, mst, strlen(mst) + 1, 0);
+
+					}
+
+				}
+				else
+				{
+
+
+
+					if (MSG.parseString(data)) {
+						MSG.setId(mid++);
+						Messages.push_back(MSG);
+
+						if (Messages.size() > MAX_MESSAGES) {
+
+							Messages.pop_front();
+
+						}
+
+						const size_t MAX_LOGDATA = 543;
+						char logData[MAX_LOGDATA];
+
+
+						//send message to log
+
+						SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
+						SendMessageA(serverLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
+
+						//send answer to client - write in socket
+
+
+
+						const char* mst = MSG.fromListToString(Messages);
+
+						send(acceptSocket, mst, strlen(mst) + 1, 0);
+						//delete[]mst;
+
+					}
+					else {
+
+
+						SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
+						send(acceptSocket, "500", 4, 0);
+					}
+
+				}
+			}
+			shutdown(acceptSocket, SD_BOTH);
+			closesocket(acceptSocket);
+
+		}
+
+
+	}
+	ReleaseMutex(mutex);
+
 	return 0;
 }
 
