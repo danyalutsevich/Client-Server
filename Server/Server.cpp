@@ -96,8 +96,10 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	case WM_COMMAND: {
 
 
-		int cmd = LOWORD(wParam);
 		int ntf = HIWORD(wParam);
+		
+
+		int cmd = LOWORD(wParam);
 
 		switch (cmd) {
 
@@ -366,6 +368,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 			int userExists = 0;
 
 
+			//exiting form chat
 			if (data[0] == '\a') {
 				data[0] = '\b';
 				//users.remove(data);
@@ -388,12 +391,12 @@ DWORD CALLBACK StartServer(LPVOID params) {
 						}
 
 					}
-						userExists = 0;
+					userExists = 0;
 				}
 				send(acceptSocket, "201", 4, 0);
 
 			}
-
+			//registration
 			else if (data[0] == '\b') {
 
 				for (auto i = users.begin(); i != users.end(); i++) {
@@ -415,9 +418,8 @@ DWORD CALLBACK StartServer(LPVOID params) {
 						}
 
 					}
-						userExists = 0;
+					userExists = 0;
 				}
-
 				if (authorization == 0) {
 
 					char* dataCopy = new char[strlen(data) + 1];
@@ -443,23 +445,49 @@ DWORD CALLBACK StartServer(LPVOID params) {
 				authorization = 0;
 
 			}
+			//sync
+			else if (strlen(data) == 0) {
 
-			else {
+				if (Messages.size() > 0) {
 
-				if (strlen(data) == 0) {
+					const char* mst = MSG.fromListToString(Messages);
 
-					if (Messages.size() > 0) {
-						MSG.setId(mid++);
-						const char* mst = MSG.fromListToString(Messages);
-
-						send(acceptSocket, mst, strlen(mst) + 1, 0);
-
-					}
+					send(acceptSocket, mst, strlen(mst) + 1, 0);
 
 				}
-				else
-				{
-					if (MSG.parseString(data)) {
+
+			}
+			//message
+			else {
+
+
+				if (MSG.parseString(data)) {
+
+					int isRegistered = 0;
+
+					for (auto i = users.begin(); i != users.end(); i++) {
+
+						if (strlen(*i) == strlen(MSG.getName())+1) {
+
+							for (int j = 0; j < strlen(MSG.getName()); j++) {
+
+								if ((*i)[j+1] == data[j]) {
+
+									userExists++;
+
+								}
+							}
+							if (userExists == strlen(MSG.getName())) {
+
+								isRegistered++;
+
+							}
+
+						}
+						userExists = 0;
+					}
+					if (isRegistered) {
+
 						MSG.setId(mid++);
 						Messages.push_back(MSG);
 
@@ -472,27 +500,32 @@ DWORD CALLBACK StartServer(LPVOID params) {
 						const size_t MAX_LOGDATA = 543;
 						char logData[MAX_LOGDATA];
 
-
 						//send message to log
-
 						SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
 						SendMessageA(serverLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
 
-						//send answer to client - write in socket
 
+						//send answer to client - write in socket
 						const char* mst = MSG.fromListToString(Messages);
 
 						send(acceptSocket, mst, strlen(mst) + 1, 0);
-						//delete[]mst;
+
 
 					}
 					else {
-						SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
-						send(acceptSocket, "500", 4, 0);
-					}
 
+						send(acceptSocket, "401", 4, 0);
+
+					}
 				}
+				else {
+					SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
+					send(acceptSocket, "500", 4, 0);
+				}
+
 			}
+
+
 			shutdown(acceptSocket, SD_BOTH);
 			closesocket(acceptSocket);
 

@@ -66,6 +66,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	WNDCLASS wc = { };
 	wc.lpfnWndProc = WinProc;
 	wc.hInstance = hInst;
+	wc.style = CS_DBLCLKS;
 	wc.lpszClassName = WIN_CLASS_NAME;
 	wc.hbrBackground = CreateSolidBrush(RGB(0, 136, 204));
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
@@ -77,7 +78,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		return -1;
 	}
 
-	HWND hwnd = CreateWindowExW(0, WIN_CLASS_NAME, L"TCP Chat - Client", WS_OVERLAPPEDWINDOW, 700, 50, 640, 480, NULL, NULL, hInst, NULL);
+	HWND hwnd = CreateWindowExW(0, WIN_CLASS_NAME, L"TCP Chat - Client", WS_OVERLAPPEDWINDOW| CS_DBLCLKS, 700, 50, 640, 480, NULL, NULL, hInst, NULL);
 	if (hwnd == NULL) {
 		MessageBoxW(NULL, L"Window create error", L"Window create error", MB_OK | MB_ICONSTOP);
 		return -2;
@@ -113,12 +114,16 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 
 		break;
+	
+	case WM_LBUTTONDBLCLK:
+		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"dqwdqw");
+		break;
 	case WM_COMMAND: {
 
 
 		int cmd = LOWORD(wParam);
 		int ntf = HIWORD(wParam);
-
+		
 		switch (cmd) {
 
 		case CMD_CLEANCHAT:
@@ -127,6 +132,8 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 
 			break;
+
+	
 
 		case CMD_SEND_MESSAGE:
 
@@ -220,20 +227,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		SendMessageW(chatLog, WM_LBUTTONDBLCLK, 0, (LPARAM)0);
 		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"DBcLK");
 		break;
-	case WM_LBUTTONDBLCLK: {
 	
-		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"DBcLK");
-
-		//HWND ctl = (HWND)lParam;
-		//if (ctl == chatLog) {
-
-		//}
-
-		
-
-
-		break;
-	}
 	case WM_PAINT: {
 
 		PAINTSTRUCT ps;
@@ -441,7 +435,7 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 		//}
 		//else {
 
-		_snprintf_s(message, MSG_LEN, MSG_LEN, "%s%d\t%s", name, hPrev, editMsg);
+		_snprintf_s(message, MSG_LEN, MSG_LEN, "%s\t%s", name, editMsg);
 
 		//}
 
@@ -466,8 +460,12 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 		//SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
 
 
+		if (authorized && message[0] == '4' && message[1] == '0' && message[2] == '1') {
+			authorized = false;
+			SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"You've been kicked from chat because of inactivity");
 
-
+		}
+		
 
 
 		if (receveCnt > 0) {
@@ -880,6 +878,7 @@ DWORD CALLBACK JoinChatMessage(LPVOID params) {
 				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"You've exited from the chat");
 
 			}
+			
 
 
 			/*for (auto i = Messages->begin(); i != Messages->end(); i++) {
