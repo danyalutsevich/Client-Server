@@ -366,10 +366,35 @@ DWORD CALLBACK StartServer(LPVOID params) {
 			int userExists = 0;
 
 
+			if (data[0] == '\a') {
+				data[0] = '\b';
+				//users.remove(data);
+				for (auto i = users.begin(); i != users.end(); i++) {
 
-			if (data[0] == '\b') {
+					if (strlen(*i) == strlen(data)) {
 
+						for (int j = 0; j < strlen(data); j++) {
 
+							if ((*i)[j] == data[j]) {
+
+								userExists++;
+
+							}
+						}
+						if (userExists == strlen(data)) {
+
+							users.remove(*i);
+							break;
+						}
+
+					}
+						userExists = 0;
+				}
+				send(acceptSocket, "201", 4, 0);
+
+			}
+
+			else if (data[0] == '\b') {
 
 				for (auto i = users.begin(); i != users.end(); i++) {
 
@@ -382,19 +407,15 @@ DWORD CALLBACK StartServer(LPVOID params) {
 								userExists++;
 
 							}
-
-
 						}
 						if (userExists == strlen(data)) {
 
 							authorization++;
 
 						}
-						userExists = 0;
 
 					}
-
-
+						userExists = 0;
 				}
 
 				if (authorization == 0) {
@@ -421,17 +442,9 @@ DWORD CALLBACK StartServer(LPVOID params) {
 				}
 				authorization = 0;
 
-
-
-
-
-
-
 			}
 
 			else {
-
-
 
 				if (strlen(data) == 0) {
 
@@ -446,9 +459,6 @@ DWORD CALLBACK StartServer(LPVOID params) {
 				}
 				else
 				{
-
-
-
 					if (MSG.parseString(data)) {
 						MSG.setId(mid++);
 						Messages.push_back(MSG);
@@ -470,8 +480,6 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 						//send answer to client - write in socket
 
-
-
 						const char* mst = MSG.fromListToString(Messages);
 
 						send(acceptSocket, mst, strlen(mst) + 1, 0);
@@ -479,8 +487,6 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 					}
 					else {
-
-
 						SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
 						send(acceptSocket, "500", 4, 0);
 					}

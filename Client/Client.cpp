@@ -6,6 +6,7 @@
 #define CMD_DDOS 1001
 #define CMD_SYNC 1002
 #define CMD_ENTER 1003
+#define CMD_CLEANCHAT 1004
 
 #include "resource.h"
 #include <WinSock2.h>
@@ -27,6 +28,7 @@ HWND hPort;
 HWND hIP;
 HWND DDOS;
 HWND ENTER;
+HWND hClean;
 HWND hName;
 HWND hLogin;
 HWND grpEndPoint;
@@ -118,6 +120,12 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		int ntf = HIWORD(wParam);
 
 		switch (cmd) {
+		case CMD_CLEANCHAT:
+
+			SendMessageA(chatLog,LB_RESETCONTENT,0,0);
+
+
+			break;
 
 		case CMD_SEND_MESSAGE:
 
@@ -141,11 +149,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 		case CMD_ENTER:
 
-			if (!authorized) {
-				JoinChatMessage(&hWnd);
-
-
-			}
+			JoinChatMessage(&hWnd);
 
 			if (authorized) {
 
@@ -153,6 +157,18 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 					SetTimer(hWnd, CMD_SYNC, 1000, NULL);
 					EnableWindow(hName, !authorized);
+
+					EnableWindow(DDOS, authorized);
+					EnableWindow(sendMessage, authorized);
+					EnableWindow(sendMessage, authorized);
+					EnableWindow(hClean, authorized);
+
+					EnableWindow(hIP, !authorized);
+					EnableWindow(hPort, !authorized);
+
+
+					SendMessageA(ENTER, WM_SETTEXT, 0, (LPARAM)"Disconnect");
+
 				}
 				else {
 
@@ -160,24 +176,20 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 					//PostQuitMessage(0);
 					//return 0;
 				}
-				connected ? connected = false : connected = true;
+				//connected ? connected = false : connected = true;
 
-				EnableWindow(DDOS, connected);
-				EnableWindow(sendMessage, connected);
+			}
+			else {
 
-
-				if (connected) {
-
-					SendMessageA(ENTER, WM_SETTEXT, 0, (LPARAM)"Disconnect");
-
-				}
-				else {
-					SendMessageA(ENTER, WM_SETTEXT, 0, (LPARAM)"Connect");
-					SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"Sync disabled");
-
-					KillTimer(hWnd, CMD_SYNC);
-
-				}
+				SendMessageA(ENTER, WM_SETTEXT, 0, (LPARAM)"Connect");
+				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"Sync disabled");
+				EnableWindow(DDOS, authorized);
+				EnableWindow(hClean, authorized);
+				EnableWindow(sendMessage, authorized);
+				EnableWindow(hName, !authorized);
+				EnableWindow(hIP, !authorized);
+				EnableWindow(hPort, !authorized);
+				KillTimer(hWnd, CMD_SYNC);
 
 			}
 			break;
@@ -234,8 +246,8 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 
 		SetBkColor(dc, RGB(0, 136, 204));
+		return (LRESULT)GetStockObject((int)CreateSolidBrush(RGB(0, 136, 204)));
 
-		return (LRESULT)GetStockObject(NULL_BRUSH);
 		break;
 	}
 	case WM_CTLCOLOREDIT: {
@@ -284,9 +296,14 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 
 	ENTER = CreateWindowExW(0, L"Button", L"Connect", WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX | BS_PUSHLIKE, 110, 70, 80, 20, hWnd, (HMENU)CMD_ENTER, hInst, NULL);
 
+	hClean = CreateWindowExW(0, L"Button", L"Clean", WS_CHILD | WS_VISIBLE, 115, 220, 75, 23, hWnd, (HMENU)CMD_CLEANCHAT, hInst, NULL);
+	
+
+
 	SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"Press connect to enter the chat");
 
 	EnableWindow(DDOS, connected);
+	EnableWindow(hClean, connected);
 	EnableWindow(sendMessage, connected);
 
 
@@ -780,19 +797,32 @@ DWORD CALLBACK JoinChatMessage(LPVOID params) {
 
 		}
 
+		int sent;
+
+		if (!authorized) {
+
+			char name[30];
+
+			name[0] = '\b';
+
+			int nicklen = SendMessageA(hName, WM_GETTEXT, 28, (LPARAM)(name + 1));
+
+			name[nicklen + 1] = '\0';
+
+			sent = send(clientSocket, name, nicklen + 2, 0);
+
+		}
+		if (authorized) {
+
+			char name[30];
+			name[0] = '\a';
+			int nicklen = SendMessageA(hName, WM_GETTEXT, 28, (LPARAM)(name + 1));
+			name[nicklen + 1] = '\0';
+			
+			sent = send(clientSocket, name, nicklen + 2, 0);
 
 
-
-		char name[30];
-
-		name[0] = '\b';
-
-		int nicklen = SendMessageA(hName, WM_GETTEXT, 28, (LPARAM)(name + 1));
-
-		name[nicklen + 1] = '\0';
-
-		int sent = send(clientSocket, name, nicklen + 2, 0);
-
+		}
 
 
 		if (sent == SOCKET_ERROR) {
@@ -818,10 +848,15 @@ DWORD CALLBACK JoinChatMessage(LPVOID params) {
 
 
 			}
-			if (!authorized && message[0] == '4' && message[1] == '0' && message[2] == '1') {
+			else if (!authorized && message[0] == '4' && message[1] == '0' && message[2] == '1') {
 
 				authorized = false;
 				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"user with this name already exists");
+			}
+			else if (authorized && message[0] == '2' && message[1] == '0' && message[2] == '1') {
+				authorized = false;
+				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"You've exited from the chat");
+
 			}
 
 
