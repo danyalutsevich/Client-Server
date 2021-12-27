@@ -120,6 +120,7 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		int ntf = HIWORD(wParam);
 
 		switch (cmd) {
+
 		case CMD_CLEANCHAT:
 
 			SendMessageA(chatLog,LB_RESETCONTENT,0,0);
@@ -198,13 +199,13 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 		break;
 	}
-
+	
 
 	case WM_TIMER:
 
 		if (wParam == CMD_DDOS) {
 
-			CreateThread(NULL, 0, SendChatMessage, &hWnd, 0, NULL);
+			CreateThread(NULL, 0, SendChatMessage, &hWnd, 0, NULL);	
 		}
 
 		if (wParam == CMD_SYNC) {
@@ -213,6 +214,26 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		}
 
 		break;
+
+	case WM_LBUTTONDOWN:
+
+		SendMessageW(chatLog, WM_LBUTTONDBLCLK, 0, (LPARAM)0);
+		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"DBcLK");
+		break;
+	case WM_LBUTTONDBLCLK: {
+	
+		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"DBcLK");
+
+		//HWND ctl = (HWND)lParam;
+		//if (ctl == chatLog) {
+
+		//}
+
+		
+
+
+		break;
+	}
 	case WM_PAINT: {
 
 		PAINTSTRUCT ps;
@@ -245,9 +266,10 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		HWND ctl = (HWND)lParam;
 
 
+		SetBkMode(dc, 2);
 		SetBkColor(dc, RGB(0, 136, 204));
-		return (LRESULT)GetStockObject((int)CreateSolidBrush(RGB(0, 136, 204)));
-
+		//return (LRESULT)GetStockObject((int)CreateSolidBrush(RGB(0, 136, 204)));
+		return (LRESULT)GetStockObject(NULL_BRUSH);
 		break;
 	}
 	case WM_CTLCOLOREDIT: {
