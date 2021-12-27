@@ -319,7 +319,6 @@ DWORD CALLBACK StartServer(LPVOID params) {
 			char data[DATA_LEN]; // big buffer for all transfered chunks
 			int receivedCnt; //chunck size
 
-			users.push_back("\bDanya");
 
 
 			while (true) {
@@ -370,12 +369,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 				
 				if (data[0] == '\b') {
 
-					if (users.size() == 0) {
-
-						users.push_back(data);
-						send(acceptSocket, "201", 4, 0);
-					}
-					else {
+					
 
 						for (auto i = users.begin(); i != users.end(); i++) {
 
@@ -428,38 +422,10 @@ DWORD CALLBACK StartServer(LPVOID params) {
 						authorization = 0;
 
 
-						//for (auto i = users.begin(); i != users.end(); i++) {
-						//	
-						//	if (strlen(*i) == strlen(data)) {
+						
 
 
-						//		for (int j = 0; j < strlen(data); i++) {
-						//			
-						//			if ((*i)[j] == data[j]) {
-						//				userExists++;
-						//			}
-
-						//		}
-						//			
-						//	}
-						//	if (userExists == strlen(*i)) {
-						//		users.push_back(data);
-						//		send(acceptSocket, "401", 4, 0);
-						//	}
-						//	else {
-						//		send(acceptSocket, "201", 4, 0);
-
-						//	}
-						//	userExists = 0;
-						//	
-						//	
-
-						//	
-
-						//}
-
-
-					}
+					
 
 				}
 			
