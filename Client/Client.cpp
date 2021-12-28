@@ -143,6 +143,9 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 			}
 			else {
+
+
+
 				KillTimer(hWnd, CMD_DDOS);
 			}
 
@@ -215,25 +218,6 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 		break;
 
-	case WM_LBUTTONDOWN:
-
-		SendMessageW(chatLog, WM_LBUTTONDBLCLK, 0, (LPARAM)0);
-		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"DBcLK");
-		break;
-	case WM_LBUTTONDBLCLK: {
-	
-		SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"DBcLK");
-
-		//HWND ctl = (HWND)lParam;
-		//if (ctl == chatLog) {
-
-		//}
-
-		
-
-
-		break;
-	}
 	case WM_PAINT: {
 
 		PAINTSTRUCT ps;
