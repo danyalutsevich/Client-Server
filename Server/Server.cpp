@@ -570,6 +570,7 @@ DWORD CALLBACK StartServer(LPVOID params) {
 
 									send(acceptSocket, mst, strlen(mst) + 1, 0);
 									i->second = 10;
+									break;
 								}
 
 							}
