@@ -560,10 +560,14 @@ DWORD CALLBACK StartServer(LPVOID params) {
 								else {
 									const size_t MAX_LOGDATA = 543;
 									char logData[MAX_LOGDATA];
+									wchar_t wdata[MAX_LOGDATA];
 
+									mbstowcs(wdata,MSG.toDateString(),strlen(MSG.toDateString())*2);
+									
 									//send message to log
-									SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
+									SendMessageW(serverLog, LB_ADDSTRING, 0, (LPARAM)wdata);
 									SendMessageA(serverLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
+
 
 									//send answer to client - write in socket
 									const char* mst = MSG.fromListToString(*Messages);

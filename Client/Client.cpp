@@ -40,6 +40,7 @@ HANDLE mutex = NULL;
 
 const size_t MSG_LEN = 4096 * 2;
 char message[MSG_LEN];
+wchar_t messagew[MSG_LEN];
 
 bool authorized = false;
 
@@ -449,16 +450,23 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 
 		const size_t EDITMSG_LEN = 512;
 
-		char editMsg[EDITMSG_LEN];
-		SendMessageA(editMessage, WM_GETTEXT, EDITMSG_LEN, (LPARAM)editMsg);
+		wchar_t weditMsg[EDITMSG_LEN];
+		weditMsg[EDITMSG_LEN - 1] = '\0';
 
+		char editMsg[EDITMSG_LEN];
+		editMsg[EDITMSG_LEN - 1] = '\0';
+
+		SendMessageW(editMessage, WM_GETTEXT, EDITMSG_LEN, (LPARAM)weditMsg);
+
+		wcstombs(editMsg,weditMsg, EDITMSG_LEN);
+		
 		char name[30];
 		SendMessageA(hName, WM_GETTEXT, 30, (LPARAM)name);
 
 		_snprintf_s(message, MSG_LEN, MSG_LEN, "%s\t%s", name, editMsg);
 
-	
 		int sent = send(clientSocket, message, MSG_LEN + 1, 0);
+		
 
 
 
@@ -551,6 +559,7 @@ bool DeserializeMessages(char* str) {
 		NewMessages->push_back(n);
 
 		bool messageFlag = false;
+		wchar_t wdata[4096];
 
 		//checks if client has deleted messages and removes deleted messages
 		for (auto m = Messages->begin(); m != Messages->end(); m++) {
@@ -566,8 +575,8 @@ bool DeserializeMessages(char* str) {
 			if (!messageFlag) {
 				SendMessageA(chatLog, LB_RESETCONTENT, 0, 0);
 				for (auto n = NewMessages->begin(); n != NewMessages->end(); n++) {
-
-					SendMessageA(chatLog,LB_ADDSTRING,0,(LPARAM)n->toDateString());
+					mbstowcs(wdata, n->toDateString(), strlen(n->toDateString()) *2);
+					SendMessageW(chatLog,LB_ADDSTRING,0,(LPARAM)wdata);
 				}
 				messageFlag = false;
 				break;
@@ -590,8 +599,8 @@ bool DeserializeMessages(char* str) {
 
 			}
 			if (!messageFlag) {
-
-				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)n->toDateString());
+				mbstowcs(wdata, n->toDateString(), strlen(n->toDateString())*2);
+				SendMessageW(chatLog, LB_ADDSTRING, 0, (LPARAM)wdata);
 			}
 			messageFlag = false;
 		}
