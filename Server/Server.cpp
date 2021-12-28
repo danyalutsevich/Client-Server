@@ -5,6 +5,7 @@
 #define MAX_MESSAGES 100
 #define CMD_START_SERVER 1000
 #define CMD_STOP_SERVER 1001
+#define CMD_INACTIVETIMER 1002
 
 #include "resource.h"
 #include <WinSock2.h>
@@ -17,6 +18,7 @@
 #include <iomanip>
 #include <exception>
 #include <list>
+#include <map>
 #include "ChatMessage.h"
 
 HINSTANCE hInst;
@@ -34,8 +36,8 @@ HWND stopServer;
 
 SOCKET listenSocket;
 
-std::list <ChatMessage>Messages;
-
+std::list <ChatMessage>*Messages = new std::list <ChatMessage>;
+std::map<const char*, int> secFromLastMsg;
 std::list<const char*> users;
 
 LRESULT CALLBACK WinProc(HWND, UINT, WPARAM, LPARAM);
@@ -92,12 +94,29 @@ LRESULT CALLBACK WinProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		}
 
 		break;
+	case WM_TIMER:
 
+		if (wParam == CMD_INACTIVETIMER) {
+
+			for (auto i = secFromLastMsg.begin(); i != secFromLastMsg.end(); i++) {
+
+				i->second--;
+				
+
+
+			}
+
+		}
+
+
+		break;
 	case WM_COMMAND: {
 
 
-		int cmd = LOWORD(wParam);
 		int ntf = HIWORD(wParam);
+		
+
+		int cmd = LOWORD(wParam);
 
 		switch (cmd) {
 
@@ -191,7 +210,7 @@ DWORD CALLBACK CreateUI(LPVOID params) {
 	EnableWindow(stopServer, FALSE);
 
 	listenSocket = INVALID_SOCKET;
-
+	SetTimer(hWnd, CMD_INACTIVETIMER,1000,0);
 
 
 	return 0;
@@ -366,9 +385,10 @@ DWORD CALLBACK StartServer(LPVOID params) {
 			int userExists = 0;
 
 
+			//exiting form chat
 			if (data[0] == '\a') {
 				data[0] = '\b';
-				//users.remove(data);
+				
 				for (auto i = users.begin(); i != users.end(); i++) {
 
 					if (strlen(*i) == strlen(data)) {
@@ -388,12 +408,31 @@ DWORD CALLBACK StartServer(LPVOID params) {
 						}
 
 					}
-						userExists = 0;
+					userExists = 0;
 				}
 				send(acceptSocket, "201", 4, 0);
 
 			}
+			//delete message
+			else if (data[0] == '\f') {
 
+				int deleteId = atoi(data + 1);
+				std::list <ChatMessage>* NewMessages = new std::list <ChatMessage>;
+				for (auto i = Messages->begin(); i != Messages->end(); i++) {
+
+					if (i->getId() != deleteId) {
+
+						NewMessages->push_back(*i);
+						
+					}
+
+				}
+				delete Messages;
+				Messages = NewMessages;
+
+
+			}
+			//registration
 			else if (data[0] == '\b') {
 
 				for (auto i = users.begin(); i != users.end(); i++) {
@@ -415,9 +454,8 @@ DWORD CALLBACK StartServer(LPVOID params) {
 						}
 
 					}
-						userExists = 0;
+					userExists = 0;
 				}
-
 				if (authorization == 0) {
 
 					char* dataCopy = new char[strlen(data) + 1];
@@ -430,10 +468,14 @@ DWORD CALLBACK StartServer(LPVOID params) {
 					users.push_back(dataCopy);
 					//this was made because data deletes every iteration
 					//and I need to store a copy 
-
+					
+					std::pair<const char*, int> p;
+					p.first = dataCopy+1;
+					p.second = 10;
+					secFromLastMsg.insert(p);
 					send(acceptSocket, "201", 4, 0);
 
-
+					
 				}
 				else {
 
@@ -443,56 +485,119 @@ DWORD CALLBACK StartServer(LPVOID params) {
 				authorization = 0;
 
 			}
+			//sync
+			else if (strlen(data) == 0) {
 
-			else {
+				if (Messages->size() > 0) {
 
-				if (strlen(data) == 0) {
+					const char* mst = MSG.fromListToString(*Messages);
 
-					if (Messages.size() > 0) {
-						MSG.setId(mid++);
-						const char* mst = MSG.fromListToString(Messages);
-
-						send(acceptSocket, mst, strlen(mst) + 1, 0);
-
-					}
+					send(acceptSocket, mst, strlen(mst) + 1, 0);
 
 				}
-				else
-				{
-					if (MSG.parseString(data)) {
-						MSG.setId(mid++);
-						Messages.push_back(MSG);
 
-						if (Messages.size() > MAX_MESSAGES) {
+			}
+			//message
+			else {
 
-							Messages.pop_front();
+				if (MSG.parseString(data)) {
+
+					int isRegistered = 0;
+
+					for (auto i = users.begin(); i != users.end(); i++) {
+
+						if (strlen(*i) == strlen(MSG.getName())+1) {
+
+							for (int j = 0; j < strlen(MSG.getName()); j++) {
+
+								if ((*i)[j+1] == data[j]) {
+
+									userExists++;
+
+								}
+							}
+							if (userExists == strlen(MSG.getName())) {
+
+								isRegistered++;
+
+							}
 
 						}
+						userExists = 0;
+					}
+					if (isRegistered) {
 
-						const size_t MAX_LOGDATA = 543;
-						char logData[MAX_LOGDATA];
+						MSG.setId(mid++);
+						Messages->push_back(MSG);
+						char* msgName = MSG.getName();
+						int a = 0;
+
+						for (auto i = secFromLastMsg.begin(); i != secFromLastMsg.end(); i++) {
+
+							for (int j = 0; j < strlen(msgName); j++) {
+
+								if (i->first[j] == msgName[j]) {
+
+									a++;
+
+								}
+
+							}
+							if (a == strlen(msgName)) {
 
 
-						//send message to log
+								if (i->second < 0) {
 
-						SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
-						SendMessageA(serverLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
+									char rm[30];
+									rm[0] = '\b';
+									strcat(rm,i->first);
+									users.remove(rm);
+									//secFromLastMsg.erase(i->first);
 
-						//send answer to client - write in socket
+									send(acceptSocket, "401", 4, 0);
 
-						const char* mst = MSG.fromListToString(Messages);
+								}
+								else {
+									const size_t MAX_LOGDATA = 543;
+									char logData[MAX_LOGDATA];
 
-						send(acceptSocket, mst, strlen(mst) + 1, 0);
-						//delete[]mst;
+									//send message to log
+									SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)MSG.toDateString());
+									SendMessageA(serverLog, WM_VSCROLL, MAKEWPARAM(SB_BOTTOM, 0), NULL);
+
+									//send answer to client - write in socket
+									const char* mst = MSG.fromListToString(*Messages);
+
+									send(acceptSocket, mst, strlen(mst) + 1, 0);
+									i->second = 10;
+									break;
+								}
+
+							}
+							a = 0;
+						}
+
+					
+
+
+
 
 					}
 					else {
-						SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
-						send(acceptSocket, "500", 4, 0);
-					}
 
+						send(acceptSocket, "401", 4, 0);
+
+					}
 				}
+				//invalid recv data
+				else {
+					SendMessageA(serverLog, LB_ADDSTRING, 0, (LPARAM)data);
+					send(acceptSocket, "500", 4, 0);
+				}
+
 			}
+
+
 			shutdown(acceptSocket, SD_BOTH);
 			closesocket(acceptSocket);
 
