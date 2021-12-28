@@ -452,17 +452,9 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 		char name[30];
 		SendMessageA(hName, WM_GETTEXT, 30, (LPARAM)name);
 
-
-		//if (!hPrev) {
-
-		//_snprintf_s(message, MSG_LEN, MSG_LEN, "%s\t%s", name, editMsg);
-		//}
-		//else {
-
 		_snprintf_s(message, MSG_LEN, MSG_LEN, "%s\t%s", name, editMsg);
 
-		//}
-
+	
 		int sent = send(clientSocket, message, MSG_LEN + 1, 0);
 
 
@@ -480,30 +472,27 @@ DWORD CALLBACK SendChatMessage(LPVOID params) {
 
 		int receveCnt = recv(clientSocket, message, MSG_LEN, 0);
 
-		//SendMessageA(chatLog, LB_RESETCONTENT, 0, (LPARAM)NULL);
-		//SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)message);
-
-
-		if (authorized && message[0] == '4' && message[1] == '0' && message[2] == '1') {
-			authorized = false;
-			SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"You've been kicked from chat because of inactivity");
-
-		}
 		
-
-
+		
 		if (receveCnt > 0) {
+			if (authorized && message[0] == '4' && message[1] == '0' && message[2] == '1') {
+				authorized = false;
+				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)"You've been kicked from chat because of inactivity");
+				SendMessageA(ENTER, WM_SETTEXT, 0, (LPARAM)"Connect");
+				EnableWindow(DDOS, authorized);
+				EnableWindow(hClean, authorized);
+				EnableWindow(sendMessage, authorized);
+				EnableWindow(hName, !authorized);
+				EnableWindow(hIP, !authorized);
+				EnableWindow(hPort, !authorized);
+				KillTimer(hWnd,CMD_SYNC);
+			}
+			else {
 
-			ChatMessage MSG;
+				ChatMessage MSG;
+				DeserializeMessages(message);
 
-
-			DeserializeMessages(message);
-			/*for (auto i = Messages->begin(); i != Messages->end(); i++) {
-
-				SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)i->toDateString());
-
-			}*/
-
+			}
 		}
 		else {
 
@@ -535,12 +524,7 @@ bool DeserializeMessages(char* str) {
 
 		char* start = str;
 
-		//Messages->clear();
-
 		std::list<ChatMessage>* NewMessages = new std::list<ChatMessage>;
-
-
-		//Messages->erase(Messages->begin(),Messages->end());
 
 		while (str[len] != '\0') {
 
@@ -559,13 +543,13 @@ bool DeserializeMessages(char* str) {
 
 		}
 
-
 		ChatMessage n;
 		n.parseStringDT(start);
 		NewMessages->push_back(n);
 
 		bool messageFlag = false;
 
+		//checks if client has deleted messages and removes deleted messages
 		for (auto m = Messages->begin(); m != Messages->end(); m++) {
 
 			for (auto n = NewMessages->begin(); n != NewMessages->end(); n++) {
@@ -575,9 +559,6 @@ bool DeserializeMessages(char* str) {
 					messageFlag = true;
 
 				}
-
-				
-
 			}
 			if (!messageFlag) {
 				SendMessageA(chatLog, LB_RESETCONTENT, 0, 0);
@@ -593,14 +574,13 @@ bool DeserializeMessages(char* str) {
 			
 		}
 
-
+		//checks if client has all messages and adds new (unsynced) messages
 		for (auto n = NewMessages->begin(); n != NewMessages->end(); n++) {
 
 			for (auto m = Messages->begin(); m != Messages->end(); m++) {
 
 				if (m->getId() == n->getId()) {
 
-					//SendMessageA(chatLog, LB_ADDSTRING, 0, (LPARAM)n->toDateString());
 					messageFlag = true;
 
 				}
